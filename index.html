@@ -26,6 +26,8 @@ input,textarea,select{font-size:16px !important}
 .hd .badge{font-size:11px;padding:4px 10px;border-radius:20px;transition:background .3s,color .3s}
 .hd .badge.disconnected{background:var(--input-bg);color:var(--sub)}
 .hd .badge.connected{background:#d4edda;color:#155724}
+.refresh-btn{border:none;background:var(--input-bg);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.refresh-btn:active{transform:rotate(180deg)}
 body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .pn{display:none;flex:1;overflow-y:auto;overflow-x:hidden}
 .pn.on{display:flex;flex-direction:column}
@@ -236,7 +238,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
 
 <header class="hd">
   <h1>&#x1F5FA;&#xFE0F; ふたりマップ</h1>
-  <div class="badge disconnected" id="sync-badge">&#x26AA; 未接続</div>
+  <div style="display:flex;align-items:center;gap:6px"><div class="badge disconnected" id="sync-badge">&#x26AA; 未接続</div><button class="refresh-btn" onclick="manualRefresh()">&#x1F504;</button></div>
 </header>
 
 <div class="pn on" id="p-calendar">
@@ -437,8 +439,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
       data.places = newPlaces;
       data.visits = newVisits;
       saveDataLocal();
-      renderCalendar();
-      if(mapInitialized) renderPins();
+      refreshUI();
       fbSyncPaused = false;
     });
   }
@@ -492,6 +493,17 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     document.getElementById("day-log").classList.remove("show");document.getElementById("day-log").innerHTML="";
   }
 
+  function refreshUI(){
+    renderCalendar();
+    if(mapInitialized){renderPins();renderFilterChips();}
+    if(document.getElementById('p-stats').classList.contains('on'))renderStats();
+  }
+
+  window.manualRefresh=function(){
+    refreshUI();
+    toast('\uD83D\uDD04 \u66F4\u65B0\u3057\u307E\u3057\u305F');
+  };
+
   function showDayLog(day){
     var cells=document.querySelectorAll(".cal-day");for(var i=0;i<cells.length;i++)cells[i].classList.remove("selected");
     var target=document.querySelector('.cal-day[data-day="'+day+'"]');if(target)target.classList.add("selected");
@@ -543,8 +555,8 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     h+='<button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';
     openS(h);photoCurrentPhotos=visit.photos?visit.photos.slice():[];photoRenderPreview();initPhotoInput();
   };
-  window.saveEditVisit=function(visitId){var visit=findVisit(visitId);if(!visit)return;var place=findPlace(visit.placeId);var newName=document.getElementById('edit-name').value.trim();var newDate=document.getElementById('edit-date').value;var newMemo=document.getElementById('edit-memo').value.trim();var newPhotos=photoGetPhotos();var newCategory=document.getElementById('edit-category')?document.getElementById('edit-category').value:'other';var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(place&&newName&&newName!==place.name)place.name=newName;if(place){place.rating=currentRating;place.category=newCategory;}visit.date=newDate;visit.memo=newMemo;visit.photos=newPhotos;visit.cost=costVal||0;saveData();checkDataSize();renderCalendar();if(mapInitialized)renderPins();closeS();toast('\u66F4\u65B0\u3057\u307E\u3057\u305F\uFF01');};
-  window.deleteVisit=function(visitId){for(var i=0;i<data.visits.length;i++){if(data.visits[i].id===visitId){data.visits.splice(i,1);break;}}saveData();renderCalendar();if(mapInitialized)renderPins();closeS();toast('\u524A\u9664\u3057\u307E\u3057\u305F');};
+  window.saveEditVisit=function(visitId){var visit=findVisit(visitId);if(!visit)return;var place=findPlace(visit.placeId);var newName=document.getElementById('edit-name').value.trim();var newDate=document.getElementById('edit-date').value;var newMemo=document.getElementById('edit-memo').value.trim();var newPhotos=photoGetPhotos();var newCategory=document.getElementById('edit-category')?document.getElementById('edit-category').value:'other';var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(place&&newName&&newName!==place.name)place.name=newName;if(place){place.rating=currentRating;place.category=newCategory;}visit.date=newDate;visit.memo=newMemo;visit.photos=newPhotos;visit.cost=costVal||0;saveData();checkDataSize();refreshUI();closeS();toast('\u66F4\u65B0\u3057\u307E\u3057\u305F\uFF01');};
+  window.deleteVisit=function(visitId){for(var i=0;i<data.visits.length;i++){if(data.visits[i].id===visitId){data.visits.splice(i,1);break;}}saveData();refreshUI();closeS();toast('\u524A\u9664\u3057\u307E\u3057\u305F');};
 
   function escapeHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function escapeAttr(str){return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -612,7 +624,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
 
   window.markVisited=function(placeId){var place=findPlace(placeId);if(!place)return;var today=new Date().toISOString().split("T")[0];var h='<h3><i class="fa-solid fa-check-circle"></i> \u884C\u3063\u305F\u8A18\u9332</h3>';h+='<div class="fg"><label>\u65E5\u4ED8</label><input type="date" id="mv-date" value="'+today+'"></div>';h+='<div class="fg"><label>\u30E1\u30E2</label><textarea id="mv-memo" placeholder="\u611F\u60F3"></textarea></div>';h+=buildStarRatingHTML(place.rating||0);h+=buildCostInputHTML('');h+='<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\uD83D\uDCF7 \u5199\u771F\u3092\u8FFD\u52A0</button><input type="file" id="photo-file-input" accept="image/*" multiple style="display:none"><div id="photo-preview-container" class="photo-preview"></div></div>';h+='<button class="btn btn-primary" onclick="confirmMarkVisited(\''+placeId+'\')"><i class="fa-solid fa-check"></i> \u4FDD\u5B58</button><button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';openS(h);photoReset();initPhotoInput();};
 
-  window.confirmMarkVisited=function(placeId){var place=findPlace(placeId);if(!place)return;place.status="visited";place.rating=currentRating;var date=document.getElementById("mv-date").value;var memo=document.getElementById("mv-memo").value.trim();var photos=photoGetPhotos();var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;var visitObj={id:"v"+Date.now(),placeId:placeId,date:date,memo:memo,photos:photos,weather:null,cost:costVal||0,createdAt:date};data.visits.push(visitObj);saveData();checkDataSize();renderCalendar();renderPins();closeS();toast(place.name+" \u2192 \u884C\u3063\u305F\uFF01");fetchWeather(place.lat,place.lng,date,function(code){visitObj.weather=code;saveData();});};
+  window.confirmMarkVisited=function(placeId){var place=findPlace(placeId);if(!place)return;place.status="visited";place.rating=currentRating;var date=document.getElementById("mv-date").value;var memo=document.getElementById("mv-memo").value.trim();var photos=photoGetPhotos();var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;var visitObj={id:"v"+Date.now(),placeId:placeId,date:date,memo:memo,photos:photos,weather:null,cost:costVal||0,createdAt:date};data.visits.push(visitObj);saveData();checkDataSize();refreshUI();closeS();toast(place.name+" \u2192 \u884C\u3063\u305F\uFF01");fetchWeather(place.lat,place.lng,date,function(code){visitObj.weather=code;saveData();});};
 
   // === Search (修正4,5,6: Photon + Nominatim + 登録済みピン検索) ===
   var searchResults=[];
@@ -792,7 +804,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     setTimeout(function(){showPinSheet(place);},700);
   };
 
-  window.addFromSearch=function(idx){var r=searchResults[idx];if(!r)return;var name=r.name;var lat=r.lat;var lng=r.lng;data.places.push({id:"p"+Date.now(),name:name,lat:lat,lng:lng,status:"wishlist",url:"",category:"other",createdAt:new Date().toISOString().split("T")[0]});saveData();renderPins();document.getElementById("map-results").classList.remove("show");document.getElementById("map-input").value="";if(map)map.flyTo([lat,lng],14,{duration:0.6});toast(name+" \u8FFD\u52A0\uFF01");};
+  window.addFromSearch=function(idx){var r=searchResults[idx];if(!r)return;var name=r.name;var lat=r.lat;var lng=r.lng;data.places.push({id:"p"+Date.now(),name:name,lat:lat,lng:lng,status:"wishlist",url:"",category:"other",createdAt:new Date().toISOString().split("T")[0]});saveData();renderPins();renderFilterChips();document.getElementById("map-results").classList.remove("show");document.getElementById("map-input").value="";if(map)map.flyTo([lat,lng],14,{duration:0.6});toast(name+" \u8FFD\u52A0\uFF01");};
 
   // === Add Sheet (修正1,2: ★評価 + 費用欄追加) ===
   window.openAddSheet=function(){var today=new Date().toISOString().split("T")[0];var h='<h3><i class="fa-solid fa-pen-to-square"></i> \u65B0\u3057\u3044\u8A18\u9332</h3>';h+='<div class="fg"><label>\u5834\u6240\u540D *</label><input type="text" id="add-name" placeholder="\u4F8B\uFF1A\u25CB\u25CB\u30AB\u30D5\u30A7"></div>';h+='<div class="fg"><label>\u30AB\u30C6\u30B4\u30EA</label><select id="add-category">'+buildCategoryOptions('other')+'</select></div>';h+='<div class="fg"><label>\u65E5\u4ED8</label><input type="date" id="add-date" value="'+today+'"></div>';h+='<div class="fg"><label>\u30E1\u30E2</label><textarea id="add-memo" placeholder="\u611F\u60F3\u3092\u66F8\u3053\u3046"></textarea></div>';h+=buildStarRatingHTML(0);h+=buildCostInputHTML('');h+='<div class="fg"><label>\u30B9\u30C6\u30FC\u30BF\u30B9</label><select id="add-status"><option value="visited">\u884C\u3063\u305F\uFF08\u8D64\u30D4\u30F3\uFF09</option><option value="wishlist">\u884C\u304D\u305F\u3044\uFF08\u9752\u30D4\u30F3\uFF09</option></select></div>';h+='<div class="fg"><label>URL\uFF08\u4EFB\u610F\uFF09</label><input type="url" id="add-url" placeholder="https://..."></div>';h+='<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\uD83D\uDCF7 \u5199\u771F\u3092\u8FFD\u52A0</button><input type="file" id="photo-file-input" accept="image/*" multiple style="display:none"><div id="photo-preview-container" class="photo-preview"></div></div>';h+='<button class="btn btn-primary" onclick="saveNewRecord()">\u4FDD\u5B58</button><button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';openS(h);photoReset();initPhotoInput();currentRating=0;};
@@ -800,7 +812,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   window.saveNewRecord=function(){var name=document.getElementById("add-name").value.trim();var date=document.getElementById("add-date").value;var memo=document.getElementById("add-memo").value.trim();var status=document.getElementById("add-status").value;var url=document.getElementById("add-url").value.trim();var category=document.getElementById("add-category").value||'other';var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(!name){toast("場所名を入力");return;}
     // High 5: Geocode place name instead of random coords
     function doSaveWithCoords(lat,lng){
-      var pid="p"+Date.now();data.places.push({id:pid,name:name,lat:lat,lng:lng,status:status,url:url,rating:currentRating,category:category,createdAt:date});if(status==="visited"){var photos=photoGetPhotos();var visitObj={id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:photos,weather:null,cost:costVal||0,createdAt:date};data.visits.push(visitObj);saveData();checkDataSize();renderCalendar();if(mapInitialized)renderPins();closeS();toast(name+" 保存！");fetchWeather(lat,lng,date,function(code){visitObj.weather=code;saveData();});}else{saveData();renderCalendar();if(mapInitialized)renderPins();closeS();toast(name+" 保存！");}
+      var pid="p"+Date.now();data.places.push({id:pid,name:name,lat:lat,lng:lng,status:status,url:url,rating:currentRating,category:category,createdAt:date});if(status==="visited"){var photos=photoGetPhotos();var visitObj={id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:photos,weather:null,cost:costVal||0,createdAt:date};data.visits.push(visitObj);saveData();checkDataSize();refreshUI();closeS();toast(name+" 保存！");fetchWeather(lat,lng,date,function(code){visitObj.weather=code;saveData();});}else{saveData();refreshUI();closeS();toast(name+" 保存！");}
     }
     // If search result was selected, use those coords; otherwise geocode
     if(window._lastSearchCoords&&window._lastSearchCoords.name===name){
@@ -832,9 +844,9 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   window.toggleDark=function(){document.body.classList.toggle("dark");var isDark=document.body.classList.contains("dark");LS.set("fm_dark",isDark?"1":"0");document.getElementById("dark-toggle").classList.toggle("on",isDark);};
   window.exportData=function(){try{var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="futari-map-backup.json";a.click();URL.revokeObjectURL(a.href);toast("\u30A8\u30AF\u30B9\u30DD\u30FC\u30C8\u5B8C\u4E86");}catch(e){toast("\u5931\u6557");}};
   window.triggerImport=function(){document.getElementById("file-import").click();};
-  document.getElementById("file-import").addEventListener("change",function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var imported=JSON.parse(ev.target.result);if(imported.places&&imported.visits){data=imported;saveData();renderCalendar();if(mapInitialized)renderPins();toast("\u30A4\u30F3\u30DD\u30FC\u30C8\u5B8C\u4E86\uFF01");}else toast("\u7121\u52B9\u306A\u30C7\u30FC\u30BF");}catch(err){toast("JSON\u30A8\u30E9\u30FC");}};reader.readAsText(file);e.target.value="";});
+  document.getElementById("file-import").addEventListener("change",function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var imported=JSON.parse(ev.target.result);if(imported.places&&imported.visits){data=imported;saveData();refreshUI();toast("\u30A4\u30F3\u30DD\u30FC\u30C8\u5B8C\u4E86\uFF01");}else toast("\u7121\u52B9\u306A\u30C7\u30FC\u30BF");}catch(err){toast("JSON\u30A8\u30E9\u30FC");}};reader.readAsText(file);e.target.value="";});
   window.clearData=function(){var h='<h3><i class="fa-solid fa-triangle-exclamation"></i> \u5168\u30C7\u30FC\u30BF\u524A\u9664</h3><p style="font-size:13px;color:var(--sub);margin-bottom:16px">\u5168\u3066\u306E\u30C7\u30FC\u30BF\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F</p>';h+='<button class="btn btn-danger" onclick="confirmClear()">\u524A\u9664</button><button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';openS(h);};
-  window.confirmClear=function(){data={places:[],visits:[]};LS.set(KEY,JSON.stringify(data));if(fbConnected&&fbRoomId&&fbDB){try{fbDB.ref(fbRoomId).remove();}catch(e){}}renderCalendar();if(mapInitialized)renderPins();closeS();toast("\u524A\u9664\u5B8C\u4E86");};
+  window.confirmClear=function(){data={places:[],visits:[]};LS.set(KEY,JSON.stringify(data));if(fbConnected&&fbRoomId&&fbDB){try{fbDB.ref(fbRoomId).remove();}catch(e){}}refreshUI();closeS();toast("\u524A\u9664\u5B8C\u4E86");};
 
   // === Photo System ===
   var photoCurrentPhotos=[];var PHOTO_MAX=5;
