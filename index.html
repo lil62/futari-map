@@ -72,6 +72,11 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .map-legend{position:absolute;bottom:12px;left:12px;z-index:1000;background:var(--card);border-radius:8px;padding:6px 10px;font-size:11px;box-shadow:var(--shadow);display:flex;gap:10px}
 .map-legend span{display:flex;align-items:center;gap:4px}
 .map-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.map-filter-chips{position:absolute;top:56px;left:0;right:0;z-index:999;display:flex;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.map-filter-chips::-webkit-scrollbar{display:none}
+.map-chip{flex-shrink:0;padding:5px 10px;border-radius:16px;font-size:12px;border:1.5px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;white-space:nowrap;transition:.15s;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.map-chip:active{transform:scale(.95)}
+.map-chip.active{background:var(--ac);color:#fff;border-color:var(--ac)}
 .map-ctrl-btns{position:absolute;bottom:12px;right:56px;z-index:1000;display:flex;gap:6px}
 .map-ctrl-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--card);box-shadow:0 2px 6px rgba(0,0,0,.15);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
 .map-ctrl-btn.active{background:var(--ac);color:#fff;transform:scale(1.1)}
@@ -264,6 +269,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
       <div class="map-results" id="map-results"></div>
     </div>
     <div id="leaflet-map"></div>
+    <div class="map-filter-chips" id="map-filter-chips"></div>
     <div class="map-legend">
       <span><span class="dot" style="background:var(--red)"></span> 行った</span>
       <span><span class="dot" style="background:var(--blue)"></span> 行きたい</span>
@@ -526,6 +532,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     var visit=findVisit(visitId);if(!visit)return;var place=findPlace(visit.placeId);var pname=place?place.name:'';
     var h='<h3><i class="fa-solid fa-pen-to-square"></i> \u8A18\u9332\u3092\u7DE8\u96C6</h3>';
     h+='<div class="fg"><label>\u5834\u6240\u540D</label><input type="text" id="edit-name" value="'+escapeAttr(pname)+'"></div>';
+    h+='<div class="fg"><label>\u30AB\u30C6\u30B4\u30EA</label><select id="edit-category">'+buildCategoryOptions(place?place.category||'other':'other')+'</select></div>';
     h+='<div class="fg"><label>\u65E5\u4ED8</label><input type="date" id="edit-date" value="'+visit.date+'"></div>';
     h+='<div class="fg"><label>\u30E1\u30E2</label><textarea id="edit-memo">'+escapeHtml(visit.memo||'')+'</textarea></div>';
     h+=buildStarRatingHTML(place?place.rating:0);
@@ -536,7 +543,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     h+='<button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';
     openS(h);photoCurrentPhotos=visit.photos?visit.photos.slice():[];photoRenderPreview();initPhotoInput();
   };
-  window.saveEditVisit=function(visitId){var visit=findVisit(visitId);if(!visit)return;var place=findPlace(visit.placeId);var newName=document.getElementById('edit-name').value.trim();var newDate=document.getElementById('edit-date').value;var newMemo=document.getElementById('edit-memo').value.trim();var newPhotos=photoGetPhotos();var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(place&&newName&&newName!==place.name)place.name=newName;if(place)place.rating=currentRating;visit.date=newDate;visit.memo=newMemo;visit.photos=newPhotos;visit.cost=costVal||0;saveData();checkDataSize();renderCalendar();if(mapInitialized)renderPins();closeS();toast('\u66F4\u65B0\u3057\u307E\u3057\u305F\uFF01');};
+  window.saveEditVisit=function(visitId){var visit=findVisit(visitId);if(!visit)return;var place=findPlace(visit.placeId);var newName=document.getElementById('edit-name').value.trim();var newDate=document.getElementById('edit-date').value;var newMemo=document.getElementById('edit-memo').value.trim();var newPhotos=photoGetPhotos();var newCategory=document.getElementById('edit-category')?document.getElementById('edit-category').value:'other';var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(place&&newName&&newName!==place.name)place.name=newName;if(place){place.rating=currentRating;place.category=newCategory;}visit.date=newDate;visit.memo=newMemo;visit.photos=newPhotos;visit.cost=costVal||0;saveData();checkDataSize();renderCalendar();if(mapInitialized)renderPins();closeS();toast('\u66F4\u65B0\u3057\u307E\u3057\u305F\uFF01');};
   window.deleteVisit=function(visitId){for(var i=0;i<data.visits.length;i++){if(data.visits[i].id===visitId){data.visits.splice(i,1);break;}}saveData();renderCalendar();if(mapInitialized)renderPins();closeS();toast('\u524A\u9664\u3057\u307E\u3057\u305F');};
 
   function escapeHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -548,6 +555,15 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   var map=null,markers={},mapInitialized=false;
   var heatCircles=[],heatmapOn=false;
   var routeLines=[],routeOn=false;
+  var activeFilter=null;
+
+  function renderFilterChips(){
+    var container=document.getElementById('map-filter-chips');if(!container)return;
+    var h='<span class="map-chip'+(activeFilter===null?' active':'')+'" onclick="setMapFilter(null)">\u5168\u3066</span>';
+    for(var i=0;i<CATEGORIES.length;i++){var c=CATEGORIES[i];h+='<span class="map-chip'+(activeFilter===c.key?' active':'')+'" onclick="setMapFilter(\''+c.key+'\')">'+c.emoji+' '+c.label+'</span>';}
+    container.innerHTML=h;
+  }
+  window.setMapFilter=function(key){activeFilter=key;renderFilterChips();renderPins();};
 
   function initMap(){
     if(mapInitialized){renderPins();setTimeout(function(){if(map)map.invalidateSize();},100);return;}
@@ -557,6 +573,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OSM</a>',maxZoom:19}).addTo(map);
     setTimeout(function(){map.invalidateSize();},100);
     renderPins();
+    renderFilterChips();
     document.getElementById('btn-heatmap').addEventListener('click',function(){heatmapOn=!heatmapOn;this.classList.toggle('active',heatmapOn);toggleHeatmap();});
     document.getElementById('btn-route').addEventListener('click',function(){routeOn=!routeOn;this.classList.toggle('active',routeOn);toggleRoutes();});
   }
@@ -564,7 +581,9 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   function renderPins(){
     if(!map)return;
     for(var key in markers){if(markers.hasOwnProperty(key))map.removeLayer(markers[key]);}markers={};
-    for(var i=0;i<data.places.length;i++){var p=data.places[i];var icon=L.divIcon({className:'leaflet-marker-custom '+p.status,iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-18]});var marker=L.marker([p.lat,p.lng],{icon:icon}).addTo(map);marker.bindTooltip(p.name,{direction:'top',offset:[0,-16]});(function(place,m){m.on('click',function(){showPinSheet(place);});})(p,marker);markers[p.id]=marker;}
+    for(var i=0;i<data.places.length;i++){var p=data.places[i];
+      if(activeFilter!==null&&(p.category||'other')!==activeFilter)continue;
+      var icon=L.divIcon({className:'leaflet-marker-custom '+p.status,iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-18]});var marker=L.marker([p.lat,p.lng],{icon:icon}).addTo(map);marker.bindTooltip(getCategoryEmoji(p.category||'other')+' '+p.name,{direction:'top',offset:[0,-16]});(function(place,m){m.on('click',function(){showPinSheet(place);});})(p,marker);markers[p.id]=marker;}
     if(heatmapOn){clearHeatmap();drawHeatmap();}
     if(routeOn){clearRoutes();drawRoutes();}
   }
@@ -773,15 +792,15 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
     setTimeout(function(){showPinSheet(place);},700);
   };
 
-  window.addFromSearch=function(idx){var r=searchResults[idx];if(!r)return;var name=r.name;var lat=r.lat;var lng=r.lng;data.places.push({id:"p"+Date.now(),name:name,lat:lat,lng:lng,status:"wishlist",url:"",createdAt:new Date().toISOString().split("T")[0]});saveData();renderPins();document.getElementById("map-results").classList.remove("show");document.getElementById("map-input").value="";if(map)map.flyTo([lat,lng],14,{duration:0.6});toast(name+" \u8FFD\u52A0\uFF01");};
+  window.addFromSearch=function(idx){var r=searchResults[idx];if(!r)return;var name=r.name;var lat=r.lat;var lng=r.lng;data.places.push({id:"p"+Date.now(),name:name,lat:lat,lng:lng,status:"wishlist",url:"",category:"other",createdAt:new Date().toISOString().split("T")[0]});saveData();renderPins();document.getElementById("map-results").classList.remove("show");document.getElementById("map-input").value="";if(map)map.flyTo([lat,lng],14,{duration:0.6});toast(name+" \u8FFD\u52A0\uFF01");};
 
   // === Add Sheet (修正1,2: ★評価 + 費用欄追加) ===
-  window.openAddSheet=function(){var today=new Date().toISOString().split("T")[0];var h='<h3><i class="fa-solid fa-pen-to-square"></i> \u65B0\u3057\u3044\u8A18\u9332</h3>';h+='<div class="fg"><label>\u5834\u6240\u540D *</label><input type="text" id="add-name" placeholder="\u4F8B\uFF1A\u25CB\u25CB\u30AB\u30D5\u30A7"></div>';h+='<div class="fg"><label>\u65E5\u4ED8</label><input type="date" id="add-date" value="'+today+'"></div>';h+='<div class="fg"><label>\u30E1\u30E2</label><textarea id="add-memo" placeholder="\u611F\u60F3\u3092\u66F8\u3053\u3046"></textarea></div>';h+=buildStarRatingHTML(0);h+=buildCostInputHTML('');h+='<div class="fg"><label>\u30B9\u30C6\u30FC\u30BF\u30B9</label><select id="add-status"><option value="visited">\u884C\u3063\u305F\uFF08\u8D64\u30D4\u30F3\uFF09</option><option value="wishlist">\u884C\u304D\u305F\u3044\uFF08\u9752\u30D4\u30F3\uFF09</option></select></div>';h+='<div class="fg"><label>URL\uFF08\u4EFB\u610F\uFF09</label><input type="url" id="add-url" placeholder="https://..."></div>';h+='<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\uD83D\uDCF7 \u5199\u771F\u3092\u8FFD\u52A0</button><input type="file" id="photo-file-input" accept="image/*" multiple style="display:none"><div id="photo-preview-container" class="photo-preview"></div></div>';h+='<button class="btn btn-primary" onclick="saveNewRecord()">\u4FDD\u5B58</button><button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';openS(h);photoReset();initPhotoInput();currentRating=0;};
+  window.openAddSheet=function(){var today=new Date().toISOString().split("T")[0];var h='<h3><i class="fa-solid fa-pen-to-square"></i> \u65B0\u3057\u3044\u8A18\u9332</h3>';h+='<div class="fg"><label>\u5834\u6240\u540D *</label><input type="text" id="add-name" placeholder="\u4F8B\uFF1A\u25CB\u25CB\u30AB\u30D5\u30A7"></div>';h+='<div class="fg"><label>\u30AB\u30C6\u30B4\u30EA</label><select id="add-category">'+buildCategoryOptions('other')+'</select></div>';h+='<div class="fg"><label>\u65E5\u4ED8</label><input type="date" id="add-date" value="'+today+'"></div>';h+='<div class="fg"><label>\u30E1\u30E2</label><textarea id="add-memo" placeholder="\u611F\u60F3\u3092\u66F8\u3053\u3046"></textarea></div>';h+=buildStarRatingHTML(0);h+=buildCostInputHTML('');h+='<div class="fg"><label>\u30B9\u30C6\u30FC\u30BF\u30B9</label><select id="add-status"><option value="visited">\u884C\u3063\u305F\uFF08\u8D64\u30D4\u30F3\uFF09</option><option value="wishlist">\u884C\u304D\u305F\u3044\uFF08\u9752\u30D4\u30F3\uFF09</option></select></div>';h+='<div class="fg"><label>URL\uFF08\u4EFB\u610F\uFF09</label><input type="url" id="add-url" placeholder="https://..."></div>';h+='<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\uD83D\uDCF7 \u5199\u771F\u3092\u8FFD\u52A0</button><input type="file" id="photo-file-input" accept="image/*" multiple style="display:none"><div id="photo-preview-container" class="photo-preview"></div></div>';h+='<button class="btn btn-primary" onclick="saveNewRecord()">\u4FDD\u5B58</button><button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';openS(h);photoReset();initPhotoInput();currentRating=0;};
 
-  window.saveNewRecord=function(){var name=document.getElementById("add-name").value.trim();var date=document.getElementById("add-date").value;var memo=document.getElementById("add-memo").value.trim();var status=document.getElementById("add-status").value;var url=document.getElementById("add-url").value.trim();var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(!name){toast("場所名を入力");return;}
+  window.saveNewRecord=function(){var name=document.getElementById("add-name").value.trim();var date=document.getElementById("add-date").value;var memo=document.getElementById("add-memo").value.trim();var status=document.getElementById("add-status").value;var url=document.getElementById("add-url").value.trim();var category=document.getElementById("add-category").value||'other';var costVal=document.getElementById('edit-cost')?parseInt(document.getElementById('edit-cost').value,10):0;if(!name){toast("場所名を入力");return;}
     // High 5: Geocode place name instead of random coords
     function doSaveWithCoords(lat,lng){
-      var pid="p"+Date.now();data.places.push({id:pid,name:name,lat:lat,lng:lng,status:status,url:url,rating:currentRating,createdAt:date});if(status==="visited"){var photos=photoGetPhotos();var visitObj={id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:photos,weather:null,cost:costVal||0,createdAt:date};data.visits.push(visitObj);saveData();checkDataSize();renderCalendar();if(mapInitialized)renderPins();closeS();toast(name+" 保存！");fetchWeather(lat,lng,date,function(code){visitObj.weather=code;saveData();});}else{saveData();renderCalendar();if(mapInitialized)renderPins();closeS();toast(name+" 保存！");}
+      var pid="p"+Date.now();data.places.push({id:pid,name:name,lat:lat,lng:lng,status:status,url:url,rating:currentRating,category:category,createdAt:date});if(status==="visited"){var photos=photoGetPhotos();var visitObj={id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:photos,weather:null,cost:costVal||0,createdAt:date};data.visits.push(visitObj);saveData();checkDataSize();renderCalendar();if(mapInitialized)renderPins();closeS();toast(name+" 保存！");fetchWeather(lat,lng,date,function(code){visitObj.weather=code;saveData();});}else{saveData();renderCalendar();if(mapInitialized)renderPins();closeS();toast(name+" 保存！");}
     }
     // If search result was selected, use those coords; otherwise geocode
     if(window._lastSearchCoords&&window._lastSearchCoords.name===name){
@@ -843,8 +862,36 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   function closeLightbox(){if(!lightboxOverlay)return;lightboxOverlay.classList.remove('active');var ref=lightboxOverlay;setTimeout(function(){if(ref.parentNode)ref.parentNode.removeChild(ref);},200);lightboxOverlay=null;}
   document.addEventListener('click',function(e){var t=e.target;if(t.classList.contains('photo-scroll-img')){var vid=t.getAttribute('data-visit');var idx=parseInt(t.getAttribute('data-index'),10)||0;var visit=findVisit(vid);if(visit&&visit.photos&&visit.photos.length>0)openLightbox(visit.photos,idx);return;}if(t.classList.contains('photo-thumbnail')){var vid2=t.getAttribute('data-visit');var idx2=parseInt(t.getAttribute('data-index'),10)||0;var v2=findVisit(vid2);if(v2&&v2.photos&&v2.photos.length>0)openLightbox(v2.photos,idx2);}});
 
+  // === Categories ===
+  var CATEGORIES = [
+    {key:'cafe', emoji:'\u2615', label:'\u30AB\u30D5\u30A7', color:'#8B4513'},
+    {key:'gourmet', emoji:'\uD83C\uDF7D\uFE0F', label:'\u30B0\u30EB\u30E1', color:'#E74C3C'},
+    {key:'sweets', emoji:'\uD83C\uDF70', label:'\u30B9\u30A4\u30FC\u30C4', color:'#E91E63'},
+    {key:'onsen', emoji:'\u2668\uFE0F', label:'\u6E29\u6CC9\u30FB\u65C5\u9928', color:'#FF5722'},
+    {key:'museum', emoji:'\uD83C\uDFA8', label:'\u30DF\u30E5\u30FC\u30B8\u30A2\u30E0', color:'#2980B9'},
+    {key:'entertainment', emoji:'\uD83C\uDFAC', label:'\u30A8\u30F3\u30BF\u30E1', color:'#F39C12'},
+    {key:'park', emoji:'\uD83C\uDF33', label:'\u516C\u5712', color:'#27AE60'},
+    {key:'themepark', emoji:'\uD83C\uDFA1', label:'\u30C6\u30FC\u30DE\u30D1\u30FC\u30AF', color:'#9C27B0'},
+    {key:'zoo_aquarium', emoji:'\uD83D\uDC18', label:'\u52D5\u7269\u5712\u30FB\u6C34\u65CF\u9928', color:'#00BCD4'},
+    {key:'outdoor', emoji:'\uD83C\uDFD5\uFE0F', label:'\u30A2\u30A6\u30C8\u30C9\u30A2', color:'#4CAF50'},
+    {key:'seasonal', emoji:'\uD83C\uDF38', label:'\u5B63\u7BC0\u30B9\u30DD\u30C3\u30C8', color:'#EC407A'},
+    {key:'shrine', emoji:'\u26E9\uFE0F', label:'\u795E\u793E\u30FB\u5BFA\u9662', color:'#E67E22'},
+    {key:'shopping', emoji:'\uD83D\uDECD\uFE0F', label:'\u30B7\u30E7\u30C3\u30D4\u30F3\u30B0', color:'#9B59B6'},
+    {key:'hotel', emoji:'\uD83C\uDFE8', label:'\u5BBF\u6CCA', color:'#1ABC9C'},
+    {key:'other', emoji:'\uD83D\uDCCD', label:'\u305D\u306E\u4ED6', color:'#95A5A6'}
+  ];
+  var CATEGORY_MAP={};
+  for(var _ci=0;_ci<CATEGORIES.length;_ci++){CATEGORY_MAP[CATEGORIES[_ci].key]=CATEGORIES[_ci];}
+
+  // Old key migration
+  var OLD_KEY_MAP={'restaurant':'gourmet','leisure':'themepark','nature':'park','park_nature':'park','temple':'shrine'};
+  function migrateCategory(cat){return OLD_KEY_MAP[cat]||cat;}
+  (function(){for(var i=0;i<data.places.length;i++){var p=data.places[i];if(p.category&&OLD_KEY_MAP[p.category]){p.category=OLD_KEY_MAP[p.category];}}saveDataLocal();})();
+
+  function getCategoryEmoji(key){var c=CATEGORY_MAP[key];return c?c.emoji:'\uD83D\uDCCD';}
+  function buildCategoryOptions(selected){var h='';for(var i=0;i<CATEGORIES.length;i++){var c=CATEGORIES[i];h+='<option value="'+c.key+'"'+(selected===c.key?' selected':'')+'>'+c.emoji+' '+c.label+'</option>';}return h;}
+
   // === Stats (修正3: 12ヶ月グラフ) ===
-  var CATEGORY_MAP={cafe:{emoji:'\u2615',label:'\u30AB\u30D5\u30A7',color:'#8B4513'},restaurant:{emoji:'\uD83C\uDF7D\uFE0F',label:'\u30EC\u30B9\u30C8\u30E9\u30F3',color:'#E74C3C'},park:{emoji:'\uD83C\uDF33',label:'\u516C\u5712',color:'#27AE60'},shopping:{emoji:'\uD83D\uDECD\uFE0F',label:'\u30B7\u30E7\u30C3\u30D4\u30F3\u30B0',color:'#9B59B6'},temple:{emoji:'\u26E9\uFE0F',label:'\u795E\u793E\u4ECF\u95A3',color:'#E67E22'},museum:{emoji:'\uD83C\uDFDB\uFE0F',label:'\u7F8E\u8853\u9928',color:'#2980B9'},hotel:{emoji:'\uD83C\uDFE8',label:'\u5BBF\u6CCA',color:'#1ABC9C'},nature:{emoji:'\uD83C\uDFD4\uFE0F',label:'\u81EA\u7136',color:'#16A085'},entertainment:{emoji:'\uD83C\uDFA1',label:'\u30A8\u30F3\u30BF\u30E1',color:'#F39C12'},other:{emoji:'\uD83D\uDCCC',label:'\u305D\u306E\u4ED6',color:'#95A5A6'}};
 
   function renderStats(){
     var container=document.getElementById('p-stats');if(!container)return;
