@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FF6B6B">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%23FF6B6B'/%3E%3Ctext x='96' y='130' text-anchor='middle' font-size='100'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>ふたりマップ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ac:#FF6B6B;--red:#E74C3C;--blue:#3498DB;--bg:#fff;--card:#fff;--text:#1a1a1a;--sub:#666;--border:#eee;--nav-bg:#fff;--input-bg:#f5f5f5;--shadow:0 1px 3px rgba(60,64,67,.12);--safe-b:env(safe-area-inset-bottom,0px)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+body.dark{--bg:#1a1a1a;--card:#2a2a2a;--text:#f0f0f0;--sub:#aaa;--border:#333;--nav-bg:#222;--input-bg:#333;--shadow:0 1px 3px rgba(0,0,0,.3)}
+
+.hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--border);z-index:100;flex-shrink:0}
+.hd h1{font-size:18px;font-weight:700;color:var(--text)}
+.hd .badge{font-size:11px;background:var(--input-bg);color:var(--sub);padding:4px 10px;border-radius:20px}
+
+.pn{display:none;flex:1;overflow-y:auto;overflow-x:hidden}
+.pn.on{display:flex;flex-direction:column}
+
+.bn{display:flex;background:var(--nav-bg);border-top:1px solid var(--border);padding:8px 0;padding-bottom:calc(8px + var(--safe-b));position:relative;z-index:100;flex-shrink:0}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border:none;background:none;color:var(--sub);font-size:10px;cursor:pointer;transition:.2s}
+.nb i{font-size:20px}
+.nb.on{color:var(--ac)}
+
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px}
+.cal-header h2{font-size:16px;font-weight:600}
+.cal-header button{border:none;background:none;font-size:20px;color:var(--sub);cursor:pointer;padding:8px;line-height:1}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 8px}
+.cal-dow{text-align:center;font-size:11px;color:var(--sub);padding:4px 0;font-weight:500}
+.cal-day{text-align:center;padding:10px 4px;border-radius:8px;font-size:14px;cursor:pointer;position:relative;transition:.15s}
+.cal-day:active{background:var(--input-bg)}
+.cal-day.selected{background:var(--ac);color:#fff}
+.cal-day.has-visit::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--red)}
+.cal-day.empty{pointer-events:none;color:transparent}
+.day-log{padding:0 16px;max-height:0;overflow:hidden;transition:max-height .3s ease}
+.day-log.show{max-height:600px}
+.log-card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.log-card h4{font-size:14px;margin-bottom:4px}
+.log-card p{font-size:12px;color:var(--sub);margin-bottom:8px;line-height:1.5}
+.log-card .btn-map{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--blue);border:none;background:none;cursor:pointer;font-weight:600;padding:4px 0}
+
+.map-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+#leaflet-map{width:100%;height:100%;z-index:1}
+.map-search{position:absolute;top:12px;left:12px;right:12px;z-index:1000}
+.map-search input{width:100%;padding:10px 14px 10px 36px;border:none;border-radius:24px;font-size:14px;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;color:var(--text)}
+.map-search input:focus{outline:2px solid var(--ac)}
+.map-search .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:14px}
+.map-results{position:absolute;top:48px;left:0;right:0;background:var(--card);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.15);max-height:200px;overflow-y:auto;display:none}
+.map-results.show{display:block}
+.map-result-item{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer}
+.map-result-item:active{background:var(--input-bg)}
+.map-legend{position:absolute;bottom:12px;left:12px;z-index:1000;background:var(--card);border-radius:8px;padding:6px 10px;font-size:11px;box-shadow:var(--shadow);display:flex;gap:10px}
+.map-legend span{display:flex;align-items:center;gap:4px}
+.map-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+.so{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;align-items:flex-end;justify-content:center}
+.so.open{display:flex}
+.sheet{background:var(--card);border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(20px + var(--safe-b));width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .25s ease-out}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.shandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
+.sheet h3{font-size:16px;margin-bottom:12px}
+.sheet .fg{margin-bottom:12px}
+.sheet label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+.sheet input,.sheet textarea,.sheet select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--input-bg);font-family:inherit;color:var(--text)}
+.sheet input:focus,.sheet textarea:focus,.sheet select:focus{outline:none;border-color:var(--ac)}
+.sheet textarea{resize:vertical;min-height:60px}
+.btn{display:block;width:100%;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;font-family:inherit;text-align:center}
+.btn:active{opacity:.7}
+.btn-primary{background:var(--ac);color:#fff}
+.btn-secondary{background:var(--input-bg);color:var(--text);margin-top:6px}
+.btn-danger{background:#fef0f0;color:var(--red);margin-top:6px}
+
+.fab{position:fixed;bottom:calc(68px + var(--safe-b));right:16px;width:52px;height:52px;border-radius:50%;background:var(--ac);color:#fff;border:none;font-size:24px;box-shadow:0 3px 12px rgba(255,107,107,.4);cursor:pointer;z-index:500;display:flex;align-items:center;justify-content:center;transition:.2s;line-height:1}
+.fab:active{transform:scale(.9)}
+
+.settings{padding:16px}
+.set-section{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.set-section h3{font-size:14px;margin-bottom:10px}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0}
+.set-row label{font-size:13px}
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--border);border:none;cursor:pointer;position:relative;transition:.2s}
+.toggle.on{background:var(--ac)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:23px}
+.set-btn{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);font-size:13px;cursor:pointer;margin-top:6px;font-family:inherit;color:var(--text)}
+.set-btn:active{background:var(--input-bg)}
+.set-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--input-bg);font-family:inherit;margin-bottom:6px;color:var(--text)}
+
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:12px 24px;border-radius:24px;font-size:13px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+
+.marker-preview{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.marker-preview .pin-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0}
+.marker-preview h4{font-size:15px}
+.marker-preview .sub{font-size:11px;color:var(--sub)}
+.visit-list{margin-top:8px}
+.visit-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.visit-item:last-child{border:none}
+.visit-item .date{font-weight:600;color:var(--ac)}
+.visit-item .memo{color:var(--sub);margin-top:2px}
+.no-data{text-align:center;padding:40px 20px;color:var(--sub);font-size:13px}
+
+/* Leaflet custom marker */
+.leaflet-marker-custom{width:28px;height:28px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer;transition:.15s}
+.leaflet-marker-custom:active{transform:scale(1.2)}
+.leaflet-marker-custom.visited{background:#E74C3C}
+.leaflet-marker-custom.wishlist{background:#3498DB}
+
+/* Leaflet overrides for dark mode */
+body.dark .leaflet-control-zoom a{background:var(--card);color:var(--text);border-color:var(--border)}
+body.dark .leaflet-control-attribution{background:rgba(42,42,42,.8);color:var(--sub)}
+body.dark .leaflet-control-attribution a{color:var(--sub)}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <h1>🗺️ ふたりマップ</h1>
+  <div class="badge">⚪ 未接続</div>
+</header>
+
+<div class="pn on" id="p-calendar">
+  <div class="cal-header">
+    <button onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+    <h2 id="cal-title"></h2>
+    <button onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="day-log" id="day-log"></div>
+</div>
+
+<div class="pn" id="p-map">
+  <div class="map-wrap">
+    <div class="map-search">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" id="map-input" placeholder="場所を検索..." autocomplete="off">
+      <div class="map-results" id="map-results"></div>
+    </div>
+    <div id="leaflet-map"></div>
+    <div class="map-legend">
+      <span><span class="dot" style="background:var(--red)"></span> 行った</span>
+      <span><span class="dot" style="background:var(--blue)"></span> 行きたい</span>
+    </div>
+  </div>
+</div>
+
+<div class="pn" id="p-settings">
+  <div class="settings">
+    <div class="set-section">
+      <h3><i class="fa-solid fa-cloud"></i> Firebase接続</h3>
+      <input class="set-input" placeholder="apiKey" disabled>
+      <input class="set-input" placeholder="databaseURL" disabled>
+      <button class="set-btn" disabled>接続（Loop 2で実装）</button>
+    </div>
+    <div class="set-section">
+      <h3><i class="fa-solid fa-key"></i> 共有キー（合言葉）</h3>
+      <input class="set-input" placeholder="パートナーと同じ合言葉を入力" disabled>
+      <button class="set-btn" disabled>共有開始（Loop 2で実装）</button>
+    </div>
+    <div class="set-section">
+      <h3><i class="fa-solid fa-palette"></i> 表示設定</h3>
+      <div class="set-row">
+        <label>ダークモード</label>
+        <button class="toggle" id="dark-toggle" onclick="toggleDark()"></button>
+      </div>
+    </div>
+    <div class="set-section">
+      <h3><i class="fa-solid fa-floppy-disk"></i> データ管理</h3>
+      <button class="set-btn" onclick="exportData()"><i class="fa-solid fa-download"></i> エクスポート（JSON）</button>
+      <button class="set-btn" onclick="triggerImport()"><i class="fa-solid fa-upload"></i> インポート</button>
+      <button class="set-btn" style="color:var(--red);border-color:var(--red)" onclick="clearData()"><i class="fa-solid fa-trash"></i> 全データ削除</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bn">
+  <button class="nb on" data-t="p-calendar">
+    <i class="fa-solid fa-calendar-days"></i>
+    <span>カレンダー</span>
+  </button>
+  <button class="nb" data-t="p-map">
+    <i class="fa-solid fa-map-location-dot"></i>
+    <span>地図</span>
+  </button>
+  <button class="nb" data-t="p-settings">
+    <i class="fa-solid fa-gear"></i>
+    <span>設定</span>
+  </button>
+</nav>
+
+<button class="fab" id="fab" onclick="openAddSheet()"><i class="fa-solid fa-plus"></i></button>
+
+<div class="so" id="sheet" onclick="sheetBgClick(event)">
+  <div class="sheet"><div class="shandle"></div><div id="shB"></div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="file-import" accept=".json" style="display:none">
+
+<script>
+(function(){
+  "use strict";
+
+  // === Service Worker Registration ===
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  }
+
+  // === Storage wrapper ===
+  var LS = {
+    get: function(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+    set: function(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+    rm: function(k){ try{ localStorage.removeItem(k); }catch(e){} }
+  };
+
+  // === Data ===
+  var KEY = "fm_data";
+  var SAMPLE = {
+    places:[
+      {id:"p1",name:"代々木公園",lat:35.6712,lng:139.6950,status:"visited",url:"",createdAt:"2025-07-05"},
+      {id:"p2",name:"東京スカイツリー",lat:35.7101,lng:139.8107,status:"visited",url:"",createdAt:"2025-07-12"},
+      {id:"p3",name:"お台場海浜公園",lat:35.6295,lng:139.7753,status:"visited",url:"",createdAt:"2025-07-19"},
+      {id:"p4",name:"鎌倉 鶴岡八幡宮",lat:35.3192,lng:139.5466,status:"wishlist",url:"https://www.hachimangu.or.jp/",createdAt:"2025-07-01"},
+      {id:"p5",name:"横浜中華街",lat:35.4437,lng:139.6450,status:"wishlist",url:"https://www.chinatown.or.jp/",createdAt:"2025-07-03"}
+    ],
+    visits:[
+      {id:"v1",placeId:"p1",date:"2025-07-05",memo:"緑がきれいだった！ピクニック最高",photos:[],createdAt:"2025-07-05"},
+      {id:"v2",placeId:"p2",date:"2025-07-12",memo:"展望台からの夜景が素晴らしい",photos:[],createdAt:"2025-07-12"},
+      {id:"v3",placeId:"p3",date:"2025-07-19",memo:"砂浜で夕日を見た。風が気持ちいい",photos:[],createdAt:"2025-07-19"},
+      {id:"v4",placeId:"p1",date:"2025-07-26",memo:"2回目！今度はバドミントンした",photos:[],createdAt:"2025-07-26"}
+    ]
+  };
+
+  function loadData(){
+    var raw = LS.get(KEY);
+    if(raw){ try{ return JSON.parse(raw); }catch(e){} }
+    LS.set(KEY, JSON.stringify(SAMPLE));
+    return JSON.parse(JSON.stringify(SAMPLE));
+  }
+  function saveData(){ LS.set(KEY, JSON.stringify(data)); }
+  var data = loadData();
+
+  // === Toast ===
+  var toastTimer = null;
+  window.toast = function(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 2000);
+  };
+
+  // === Sheet ===
+  window.openS = function(html){
+    document.getElementById("shB").innerHTML = html;
+    document.getElementById("sheet").classList.add("open");
+  };
+  window.closeS = function(){
+    document.getElementById("sheet").classList.remove("open");
+  };
+  window.sheetBgClick = function(e){
+    if(e.target === document.getElementById("sheet")) closeS();
+  };
+
+  // === Tabs ===
+  var tabs = document.querySelectorAll(".nb");
+  var panels = document.querySelectorAll(".pn");
+  for(var i=0; i<tabs.length; i++){
+    (function(btn){
+      btn.addEventListener("click", function(){
+        for(var j=0; j<tabs.length; j++) tabs[j].classList.remove("on");
+        for(var j=0; j<panels.length; j++) panels[j].classList.remove("on");
+        btn.classList.add("on");
+        document.getElementById(btn.getAttribute("data-t")).classList.add("on");
+        var fab = document.getElementById("fab");
+        fab.style.display = btn.getAttribute("data-t")==="p-settings" ? "none" : "flex";
+        if(btn.getAttribute("data-t")==="p-map") initMap();
+      });
+    })(tabs[i]);
+  }
+
+  // === Calendar ===
+  var calYear = 2025, calMonth = 6;
+
+  window.changeMonth = function(d){
+    calMonth += d;
+    if(calMonth < 0){ calMonth = 11; calYear--; }
+    if(calMonth > 11){ calMonth = 0; calYear++; }
+    renderCalendar();
+  };
+
+  function renderCalendar(){
+    document.getElementById("cal-title").textContent = calYear + "年" + (calMonth+1) + "月";
+    var grid = document.getElementById("cal-grid");
+    var dows = ["日","月","火","水","木","金","土"];
+    var html = "";
+    for(var i=0;i<7;i++) html += '<div class="cal-dow">'+dows[i]+"</div>";
+
+    var first = new Date(calYear, calMonth, 1).getDay();
+    var days = new Date(calYear, calMonth+1, 0).getDate();
+
+    var visitDays = {};
+    for(var i=0;i<data.visits.length;i++){
+      var vd = new Date(data.visits[i].date);
+      if(vd.getFullYear()===calYear && vd.getMonth()===calMonth){
+        visitDays[vd.getDate()] = true;
+      }
+    }
+
+    for(var i=0;i<first;i++) html += '<div class="cal-day empty">.</div>';
+    for(var d=1;d<=days;d++){
+      var cls = "cal-day";
+      if(visitDays[d]) cls += " has-visit";
+      html += '<div class="'+cls+'" data-day="'+d+'">'+d+"</div>";
+    }
+    grid.innerHTML = html;
+
+    var dayCells = grid.querySelectorAll(".cal-day:not(.empty)");
+    for(var i=0;i<dayCells.length;i++){
+      (function(cell){
+        cell.addEventListener("click", function(){
+          showDayLog(parseInt(cell.getAttribute("data-day")));
+        });
+      })(dayCells[i]);
+    }
+    document.getElementById("day-log").classList.remove("show");
+    document.getElementById("day-log").innerHTML = "";
+  }
+
+  function showDayLog(day){
+    var cells = document.querySelectorAll(".cal-day");
+    for(var i=0;i<cells.length;i++) cells[i].classList.remove("selected");
+    var target = document.querySelector('.cal-day[data-day="'+day+'"]');
+    if(target) target.classList.add("selected");
+
+    var mm = String(calMonth+1).padStart(2,"0");
+    var dd = String(day).padStart(2,"0");
+    var dateStr = calYear + "-" + mm + "-" + dd;
+
+    var dayVisits = [];
+    for(var i=0;i<data.visits.length;i++){
+      if(data.visits[i].date === dateStr) dayVisits.push(data.visits[i]);
+    }
+
+    var logEl = document.getElementById("day-log");
+    if(dayVisits.length === 0){
+      logEl.innerHTML = '<div class="no-data">この日の記録はありません</div>';
+    } else {
+      var h = "";
+      for(var i=0;i<dayVisits.length;i++){
+        var v = dayVisits[i];
+        var place = findPlace(v.placeId);
+        var pname = place ? place.name : "不明な場所";
+        h += '<div class="log-card"><h4><i class="fa-solid fa-location-dot"></i> '+pname+'</h4><p>'+v.memo+'</p>';
+        h += '<button class="btn-map" onclick="goToMap(\''+v.placeId+'\')"><i class="fa-solid fa-map"></i> 地図で見る</button></div>';
+      }
+      logEl.innerHTML = h;
+    }
+    logEl.classList.remove("show");
+    setTimeout(function(){ logEl.classList.add("show"); }, 20);
+  }
+
+  function findPlace(id){
+    for(var i=0;i<data.places.length;i++){
+      if(data.places[i].id===id) return data.places[i];
+    }
+    return null;
+  }
+
+  window.goToMap = function(placeId){
+    for(var j=0;j<tabs.length;j++) tabs[j].classList.remove("on");
+    for(var j=0;j<panels.length;j++) panels[j].classList.remove("on");
+    tabs[1].classList.add("on");
+    document.getElementById("p-map").classList.add("on");
+    initMap();
+    // Fly to the place
+    setTimeout(function(){
+      var place = findPlace(placeId);
+      if(place && map){
+        map.flyTo([place.lat, place.lng], 15, {duration: 0.8});
+        // Bounce the marker
+        if(markers[placeId]){
+          var el = markers[placeId].getElement();
+          if(el){
+            el.style.transform += ' scale(1.4)';
+            setTimeout(function(){ el.style.transform = el.style.transform.replace(' scale(1.4)',''); }, 600);
+          }
+        }
+      }
+    }, 200);
+  };
+
+  // === Leaflet Map ===
+  var map = null;
+  var markers = {};
+  var mapInitialized = false;
+
+  function initMap(){
+    if(mapInitialized){
+      renderPins();
+      setTimeout(function(){ if(map) map.invalidateSize(); }, 100);
+      return;
+    }
+    mapInitialized = true;
+
+    map = L.map('leaflet-map', {
+      center: [35.6812, 139.7671],
+      zoom: 11,
+      zoomControl: false
+    });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      maxZoom: 19
+    }).addTo(map);
+
+    setTimeout(function(){ map.invalidateSize(); }, 100);
+    renderPins();
+  }
+
+  function renderPins(){
+    if(!map) return;
+
+    // Remove existing markers
+    for(var key in markers){
+      if(markers.hasOwnProperty(key)){
+        map.removeLayer(markers[key]);
+      }
+    }
+    markers = {};
+
+    for(var i=0;i<data.places.length;i++){
+      var p = data.places[i];
+      var icon = L.divIcon({
+        className: 'leaflet-marker-custom ' + p.status,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -18]
+      });
+
+      var marker = L.marker([p.lat, p.lng], { icon: icon }).addTo(map);
+      marker.bindTooltip(p.name, {
+        direction: 'top',
+        offset: [0, -16],
+        className: ''
+      });
+
+      (function(place, m){
+        m.on('click', function(){ showPinSheet(place); });
+      })(p, marker);
+
+      markers[p.id] = marker;
+    }
+  }
+
+  function showPinSheet(place){
+    var color = place.status==="visited" ? "var(--red)" : "var(--blue)";
+    var stxt = place.status==="visited" ? "行った場所" : "行きたい場所";
+    var h = '<div class="marker-preview"><div class="pin-dot" style="background:'+color+'"></div><div><h4>'+place.name+'</h4><div class="sub">'+stxt+'</div></div></div>';
+
+    if(place.url){
+      h += '<a href="'+place.url+'" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);display:block;margin:8px 0"><i class="fa-solid fa-link"></i> Webサイトを開く</a>';
+    }
+
+    var visits = [];
+    for(var i=0;i<data.visits.length;i++){
+      if(data.visits[i].placeId===place.id) visits.push(data.visits[i]);
+    }
+    if(visits.length>0){
+      h += '<div class="visit-list">';
+      for(var i=0;i<visits.length;i++){
+        h += '<div class="visit-item"><span class="date">'+visits[i].date+'</span><div class="memo">'+visits[i].memo+'</div></div>';
+      }
+      h += '</div>';
+    }
+
+    if(place.status==="wishlist"){
+      h += '<button class="btn btn-primary" onclick="markVisited(\''+place.id+'\')"><i class="fa-solid fa-check"></i> 行った記録に変える</button>';
+    }
+    h += '<button class="btn btn-secondary" onclick="closeS()">閉じる</button>';
+    openS(h);
+  }
+
+  window.markVisited = function(placeId){
+    var place = findPlace(placeId);
+    if(!place) return;
+    place.status = "visited";
+    var today = new Date().toISOString().split("T")[0];
+    data.visits.push({id:"v"+Date.now(),placeId:placeId,date:today,memo:"",photos:[],createdAt:today});
+    saveData();
+    renderPins();
+    closeS();
+    toast(place.name + " を行った記録に変えました！");
+  };
+
+  // === Search ===
+  var searchResults = [];
+
+  document.getElementById("map-input").addEventListener("keydown", function(e){
+    if(e.key==="Enter") searchPlace();
+  });
+
+  document.addEventListener("click", function(e){
+    if(!e.target.closest(".map-search")){
+      document.getElementById("map-results").classList.remove("show");
+    }
+  });
+
+  function searchPlace(){
+    var q = document.getElementById("map-input").value.trim();
+    if(!q) return;
+    var el = document.getElementById("map-results");
+    el.innerHTML = '<div class="map-result-item"><i class="fa-solid fa-spinner fa-spin"></i> 検索中...</div>';
+    el.classList.add("show");
+
+    fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&countrycodes=jp&limit=5")
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        searchResults = res;
+        if(res.length===0){
+          el.innerHTML = '<div class="map-result-item">見つかりませんでした</div>';
+          return;
+        }
+        var h = "";
+        for(var i=0;i<res.length;i++){
+          var label = res[i].display_name.split(",").slice(0,3).join(", ");
+          h += '<div class="map-result-item" onclick="addFromSearch('+i+')">'+label+'</div>';
+        }
+        el.innerHTML = h;
+      })
+      .catch(function(){
+        el.innerHTML = '<div class="map-result-item">検索エラー（ネットワーク確認）</div>';
+      });
+  }
+
+  window.addFromSearch = function(idx){
+    var r = searchResults[idx];
+    if(!r) return;
+    var name = r.display_name.split(",")[0];
+    var lat = parseFloat(r.lat);
+    var lng = parseFloat(r.lon);
+    var np = {
+      id:"p"+Date.now(),
+      name:name,
+      lat:lat,
+      lng:lng,
+      status:"wishlist",
+      url:"",
+      createdAt:new Date().toISOString().split("T")[0]
+    };
+    data.places.push(np);
+    saveData();
+    renderPins();
+    document.getElementById("map-results").classList.remove("show");
+    document.getElementById("map-input").value = "";
+    if(map) map.flyTo([lat, lng], 14, {duration: 0.6});
+    toast(name + " を行きたいリストに追加！");
+  };
+
+  // === Add Sheet ===
+  window.openAddSheet = function(){
+    var today = new Date().toISOString().split("T")[0];
+    var h = '<h3><i class="fa-solid fa-pen-to-square"></i> 新しい記録を追加</h3>';
+    h += '<div class="fg"><label>場所の名前 *</label><input type="text" id="add-name" placeholder="例：〇〇カフェ"></div>';
+    h += '<div class="fg"><label>日付</label><input type="date" id="add-date" value="'+today+'"></div>';
+    h += '<div class="fg"><label>一言メモ</label><textarea id="add-memo" placeholder="例：パンケーキが美味しかった！"></textarea></div>';
+    h += '<div class="fg"><label>ステータス</label><select id="add-status"><option value="visited">行った（赤ピン）</option><option value="wishlist">行きたい（青ピン）</option></select></div>';
+    h += '<div class="fg"><label>URL（任意）</label><input type="url" id="add-url" placeholder="https://..."></div>';
+    h += '<button class="btn btn-primary" onclick="saveNewRecord()">保存する</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">キャンセル</button>';
+    openS(h);
+  };
+
+  window.saveNewRecord = function(){
+    var name = document.getElementById("add-name").value.trim();
+    var date = document.getElementById("add-date").value;
+    var memo = document.getElementById("add-memo").value.trim();
+    var status = document.getElementById("add-status").value;
+    var url = document.getElementById("add-url").value.trim();
+
+    if(!name){ toast("場所名を入力してください"); return; }
+
+    var lat = 35.5 + Math.random()*0.4;
+    var lng = 139.5 + Math.random()*0.4;
+
+    var pid = "p"+Date.now();
+    data.places.push({id:pid,name:name,lat:lat,lng:lng,status:status,url:url,createdAt:date});
+
+    if(status==="visited"){
+      data.visits.push({id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:[],createdAt:date});
+    }
+    saveData();
+    renderCalendar();
+    renderPins();
+    closeS();
+    toast(name + " を保存しました！");
+  };
+
+  // === Settings ===
+  window.toggleDark = function(){
+    document.body.classList.toggle("dark");
+    var isDark = document.body.classList.contains("dark");
+    LS.set("fm_dark", isDark?"1":"0");
+    document.getElementById("dark-toggle").classList.toggle("on", isDark);
+  };
+
+  window.exportData = function(){
+    try{
+      var blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "futari-map-backup.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("エクスポート完了");
+    }catch(e){ toast("エクスポートに失敗しました"); }
+  };
+
+  window.triggerImport = function(){
+    document.getElementById("file-import").click();
+  };
+
+  document.getElementById("file-import").addEventListener("change", function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        var imported = JSON.parse(ev.target.result);
+        if(imported.places && imported.visits){
+          data = imported;
+          saveData();
+          renderCalendar();
+          renderPins();
+          toast("インポート完了！");
+        } else {
+          toast("無効なデータ形式です");
+        }
+      }catch(err){ toast("JSONの解析に失敗しました"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  window.clearData = function(){
+    var h = '<h3><i class="fa-solid fa-triangle-exclamation"></i> 全データ削除</h3>';
+    h += '<p style="font-size:13px;color:var(--sub);margin-bottom:16px;line-height:1.5">全てのデータを削除しますか？<br>この操作は元に戻せません。</p>';
+    h += '<button class="btn btn-danger" onclick="confirmClear()">削除する</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">キャンセル</button>';
+    openS(h);
+  };
+
+  window.confirmClear = function(){
+    data = {places:[],visits:[]};
+    saveData();
+    renderCalendar();
+    renderPins();
+    closeS();
+    toast("全データを削除しました");
+  };
+
+  // === Init ===
+  if(LS.get("fm_dark")==="1"){
+    document.body.classList.add("dark");
+    document.getElementById("dark-toggle").classList.add("on");
+  }
+  renderCalendar();
+
+})();
+</script>
+</body>
+</html>
