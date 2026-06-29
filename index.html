@@ -85,7 +85,7 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 body.dark .map-ctrl-btn{background:var(--card);color:var(--text)}
 .so{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;align-items:flex-end;justify-content:center}
 .so.open{display:flex}
-.sheet{background:var(--card);border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(20px + var(--safe-b));width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .25s ease-out}
+.sheet{background:var(--card);border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(20px + var(--safe-b));width:100%;max-height:85vh;overflow-y:auto;animation:slideUp .25s ease-out}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
 .shandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
 .sheet h3{font-size:16px;margin-bottom:12px}
@@ -343,7 +343,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
 
   // === Data ===
   var KEY="fm_data";
-  var SAMPLE={places:[{id:"p1",name:"\u4ee3\u3005\u6728\u516c\u5712",lat:35.6712,lng:139.6950,status:"visited",url:"",createdAt:"2025-07-05"},{id:"p2",name:"\u6771\u4eac\u30b9\u30ab\u30a4\u30c4\u30ea\u30fc",lat:35.7101,lng:139.8107,status:"visited",url:"",createdAt:"2025-07-12"},{id:"p3",name:"\u304a\u53f0\u5834\u6d77\u6d5c\u516c\u5712",lat:35.6295,lng:139.7753,status:"visited",url:"",createdAt:"2025-07-19"},{id:"p4",name:"\u938c\u5009 \u9db4\u5ca1\u516b\u5e61\u5bae",lat:35.3192,lng:139.5466,status:"wishlist",url:"",createdAt:"2025-07-01"},{id:"p5",name:"\u6a2a\u6d5c\u4e2d\u83ef\u8857",lat:35.4437,lng:139.6450,status:"wishlist",url:"",createdAt:"2025-07-03"}],visits:[{id:"v1",placeId:"p1",date:"2025-07-05",memo:"\u7dd1\u304c\u304d\u308c\u3044\u3060\u3063\u305f\uff01\u30d4\u30af\u30cb\u30c3\u30af\u6700\u9ad8",photos:[],weather:null,createdAt:"2025-07-05"},{id:"v2",placeId:"p2",date:"2025-07-12",memo:"\u5c55\u671b\u53f0\u304b\u3089\u306e\u591c\u666f\u304c\u7d20\u6674\u3089\u3057\u3044",photos:[],weather:null,createdAt:"2025-07-12"},{id:"v3",placeId:"p3",date:"2025-07-19",memo:"\u7802\u6d5c\u3067\u5915\u65e5\u3092\u898b\u305f\u3002\u98a8\u304c\u6c17\u6301\u3061\u3044\u3044",photos:[],weather:null,createdAt:"2025-07-19"},{id:"v4",placeId:"p1",date:"2025-07-26",memo:"2\u56de\u76ee\uff01\u4eca\u5ea6\u306f\u30d0\u30c9\u30df\u30f3\u30c8\u30f3\u3057\u305f",photos:[],weather:null,createdAt:"2025-07-26"}]};
+  var SAMPLE={places:[{id:"p1",name:"\u4ee3\u3005\u6728\u516c\u5712",lat:35.6712,lng:139.6950,status:"visited",url:"",category:"park",createdAt:"2025-07-05"},{id:"p2",name:"\u6771\u4eac\u30b9\u30ab\u30a4\u30c4\u30ea\u30fc",lat:35.7101,lng:139.8107,status:"visited",url:"",category:"nightview",createdAt:"2025-07-12"},{id:"p3",name:"\u304a\u53f0\u5834\u6d77\u6d5c\u516c\u5712",lat:35.6295,lng:139.7753,status:"visited",url:"",category:"beach",createdAt:"2025-07-19"},{id:"p4",name:"\u938c\u5009 \u9db4\u5ca1\u516b\u5e61\u5bae",lat:35.3192,lng:139.5466,status:"wishlist",url:"",category:"shrine",createdAt:"2025-07-01"},{id:"p5",name:"\u6a2a\u6d5c\u4e2d\u83ef\u8857",lat:35.4437,lng:139.6450,status:"wishlist",url:"",category:"gourmet",createdAt:"2025-07-03"}],visits:[{id:"v1",placeId:"p1",date:"2025-07-05",memo:"\u7dd1\u304c\u304d\u308c\u3044\u3060\u3063\u305f\uff01\u30d4\u30af\u30cb\u30c3\u30af\u6700\u9ad8",photos:[],weather:null,createdAt:"2025-07-05"},{id:"v2",placeId:"p2",date:"2025-07-12",memo:"\u5c55\u671b\u53f0\u304b\u3089\u306e\u591c\u666f\u304c\u7d20\u6674\u3089\u3057\u3044",photos:[],weather:null,createdAt:"2025-07-12"},{id:"v3",placeId:"p3",date:"2025-07-19",memo:"\u7802\u6d5c\u3067\u5915\u65e5\u3092\u898b\u305f\u3002\u98a8\u304c\u6c17\u6301\u3061\u3044\u3044",photos:[],weather:null,createdAt:"2025-07-19"},{id:"v4",placeId:"p1",date:"2025-07-26",memo:"2\u56de\u76ee\uff01\u4eca\u5ea6\u306f\u30d0\u30c9\u30df\u30f3\u30c8\u30f3\u3057\u305f",photos:[],weather:null,createdAt:"2025-07-26"}]};
 
   function loadData(){var raw=LS.get(KEY);if(raw){try{return JSON.parse(raw);}catch(e){}}LS.set(KEY,JSON.stringify(SAMPLE));return JSON.parse(JSON.stringify(SAMPLE));}
   function saveData(){LS.set(KEY,JSON.stringify(data));fbSync();}
@@ -831,6 +831,49 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
 
   window.addFromSearch=function(idx){var r=searchResults[idx];if(!r)return;var name=r.name;var lat=r.lat;var lng=r.lng;data.places.push({id:"p"+Date.now(),name:name,lat:lat,lng:lng,status:"wishlist",url:"",category:"other",createdAt:new Date().toISOString().split("T")[0]});saveData();renderPins();renderFilterChips();document.getElementById("map-results").classList.remove("show");document.getElementById("map-input").value="";if(map)map.flyTo([lat,lng],14,{duration:0.6});toast(name+" \u8FFD\u52A0\uFF01");};
 
+  // === Categories ===
+  var CATEGORIES = [
+    {key:'cafe', emoji:'☕', label:'カフェ'},
+    {key:'gourmet', emoji:'🍽️', label:'グルメ'},
+    {key:'izakaya', emoji:'🍺', label:'バー・居酒屋'},
+    {key:'sweets', emoji:'🍰', label:'スイーツ'},
+    {key:'bakery', emoji:'🍞', label:'パン・ベーカリー'},
+    {key:'onsen', emoji:'♨️', label:'温泉・旅館'},
+    {key:'museum', emoji:'🎨', label:'ミュージアム'},
+    {key:'entertainment', emoji:'🎬', label:'エンタメ'},
+    {key:'music', emoji:'🎵', label:'音楽・ライブ'},
+    {key:'park', emoji:'🌳', label:'公園'},
+    {key:'themepark', emoji:'🎡', label:'テーマパーク'},
+    {key:'zoo_aquarium', emoji:'🐘', label:'動物園・水族館'},
+    {key:'sports', emoji:'🏟️', label:'スポーツ'},
+    {key:'outdoor', emoji:'🏕️', label:'アウトドア'},
+    {key:'beach', emoji:'🏖️', label:'ビーチ・海'},
+    {key:'nightview', emoji:'🌃', label:'夜景スポット'},
+    {key:'seasonal', emoji:'🌸', label:'季節スポット'},
+    {key:'photo', emoji:'📸', label:'フォトスポット'},
+    {key:'shrine', emoji:'⛩️', label:'神社・寺院'},
+    {key:'shopping', emoji:'🛍️', label:'ショッピング'},
+    {key:'relaxation', emoji:'💆', label:'リラクゼーション'},
+    {key:'hotel', emoji:'🏨', label:'宿泊'},
+    {key:'drive', emoji:'🚗', label:'ドライブ'},
+    {key:'anniversary', emoji:'🎂', label:'記念日スポット'},
+    {key:'other', emoji:'📍', label:'その他'}
+  ];
+  var CATEGORY_MAP={};
+  for(var _ci=0;_ci<CATEGORIES.length;_ci++){
+    var _hue=Math.round((_ci/CATEGORIES.length)*360);
+    CATEGORIES[_ci].color='hsl('+_hue+',65%,55%)';
+    CATEGORY_MAP[CATEGORIES[_ci].key]=CATEGORIES[_ci];
+  }
+
+  // Old key migration
+  var OLD_KEY_MAP={'restaurant':'gourmet','leisure':'themepark','nature':'park','park_nature':'park','temple':'shrine'};
+  function migrateCategory(cat){return OLD_KEY_MAP[cat]||cat;}
+  (function(){for(var i=0;i<data.places.length;i++){var p=data.places[i];if(!p.category){p.category='other';}else if(OLD_KEY_MAP[p.category]){p.category=OLD_KEY_MAP[p.category];}}saveDataLocal();})();
+
+  function getCategoryEmoji(key){var c=CATEGORY_MAP[key];return c?c.emoji:'\uD83D\uDCCD';}
+  function buildCategoryOptions(selected){var h='';for(var i=0;i<CATEGORIES.length;i++){var c=CATEGORIES[i];h+='<option value="'+c.key+'"'+(selected===c.key?' selected':'')+'>'+c.emoji+' '+c.label+'</option>';}return h;}
+
   // === Add Sheet (修正1,2: ★評価 + 費用欄追加) ===
   window.openAddSheet=function(){var today=new Date().toISOString().split("T")[0];var h='<h3><i class="fa-solid fa-pen-to-square"></i> \u65B0\u3057\u3044\u8A18\u9332</h3>';h+='<div class="fg"><label>\uD83D\uDCCD \u5834\u6240\u540D *</label><input type="text" id="add-name" placeholder="\u4F8B\uFF1A\u25CB\u25CB\u30AB\u30D5\u30A7"></div>';h+='<div class="fg"><label>\uD83D\uDCC5 \u65E5\u4ED8</label><input type="date" id="add-date" value="'+today+'"></div>';h+='<div class="fg"><label>\uD83D\uDCDD \u30E1\u30E2</label><textarea id="add-memo" placeholder="\u611F\u60F3\u3092\u66F8\u3053\u3046"></textarea></div>';h+='<div class="fg"><label>\uD83C\uDFF7\uFE0F \u30AB\u30C6\u30B4\u30EA</label><select id="add-category" style="font-size:16px">'+buildCategoryOptions('other')+'</select></div>';h+=buildWeatherSelect('');h+=buildStarRatingHTML(0);h+=buildCostInputHTML('');h+='<div class="fg"><label>\u30B9\u30C6\u30FC\u30BF\u30B9</label><select id="add-status"><option value="visited">\u884C\u3063\u305F\uFF08\u8D64\u30D4\u30F3\uFF09</option><option value="wishlist">\u884C\u304D\u305F\u3044\uFF08\u9752\u30D4\u30F3\uFF09</option></select></div>';h+='<div class="fg"><label>URL\uFF08\u4EFB\u610F\uFF09</label><input type="url" id="add-url" placeholder="https://..."></div>';h+='<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\uD83D\uDCF7 \u5199\u771F\u3092\u8FFD\u52A0</button><input type="file" id="photo-file-input" accept="image/*" multiple style="display:none"><div id="photo-preview-container" class="photo-preview"></div></div>';h+='<button class="btn btn-primary" onclick="saveNewRecord()">\u4FDD\u5B58</button><button class="btn btn-secondary" onclick="closeS()">\u30AD\u30E3\u30F3\u30BB\u30EB</button>';openS(h);photoReset();initPhotoInput();currentRating=0;};
 
@@ -899,48 +942,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   function closeLightbox(){if(!lightboxOverlay)return;lightboxOverlay.classList.remove('active');var ref=lightboxOverlay;setTimeout(function(){if(ref.parentNode)ref.parentNode.removeChild(ref);},200);lightboxOverlay=null;}
   document.addEventListener('click',function(e){var t=e.target;if(t.classList.contains('photo-scroll-img')){var vid=t.getAttribute('data-visit');var idx=parseInt(t.getAttribute('data-index'),10)||0;var visit=findVisit(vid);if(visit&&visit.photos&&visit.photos.length>0)openLightbox(visit.photos,idx);return;}if(t.classList.contains('photo-thumbnail')){var vid2=t.getAttribute('data-visit');var idx2=parseInt(t.getAttribute('data-index'),10)||0;var v2=findVisit(vid2);if(v2&&v2.photos&&v2.photos.length>0)openLightbox(v2.photos,idx2);}});
 
-  // === Categories ===
-  var CATEGORIES = [
-    {key:'cafe', emoji:'☕', label:'カフェ'},
-    {key:'gourmet', emoji:'🍽️', label:'グルメ'},
-    {key:'izakaya', emoji:'🍺', label:'バー・居酒屋'},
-    {key:'sweets', emoji:'🍰', label:'スイーツ'},
-    {key:'bakery', emoji:'🍞', label:'パン・ベーカリー'},
-    {key:'onsen', emoji:'♨️', label:'温泉・旅館'},
-    {key:'museum', emoji:'🎨', label:'ミュージアム'},
-    {key:'entertainment', emoji:'🎬', label:'エンタメ'},
-    {key:'music', emoji:'🎵', label:'音楽・ライブ'},
-    {key:'park', emoji:'🌳', label:'公園'},
-    {key:'themepark', emoji:'🎡', label:'テーマパーク'},
-    {key:'zoo_aquarium', emoji:'🐘', label:'動物園・水族館'},
-    {key:'sports', emoji:'🏟️', label:'スポーツ'},
-    {key:'outdoor', emoji:'🏕️', label:'アウトドア'},
-    {key:'beach', emoji:'🏖️', label:'ビーチ・海'},
-    {key:'nightview', emoji:'🌃', label:'夜景スポット'},
-    {key:'seasonal', emoji:'🌸', label:'季節スポット'},
-    {key:'photo', emoji:'📸', label:'フォトスポット'},
-    {key:'shrine', emoji:'⛩️', label:'神社・寺院'},
-    {key:'shopping', emoji:'🛍️', label:'ショッピング'},
-    {key:'relaxation', emoji:'💆', label:'リラクゼーション'},
-    {key:'hotel', emoji:'🏨', label:'宿泊'},
-    {key:'drive', emoji:'🚗', label:'ドライブ'},
-    {key:'anniversary', emoji:'🎂', label:'記念日スポット'},
-    {key:'other', emoji:'📍', label:'その他'}
-  ];
-  var CATEGORY_MAP={};
-  for(var _ci=0;_ci<CATEGORIES.length;_ci++){
-    var _hue=Math.round((_ci/CATEGORIES.length)*360);
-    CATEGORIES[_ci].color='hsl('+_hue+',65%,55%)';
-    CATEGORY_MAP[CATEGORIES[_ci].key]=CATEGORIES[_ci];
-  }
 
-  // Old key migration
-  var OLD_KEY_MAP={'restaurant':'gourmet','leisure':'themepark','nature':'park','park_nature':'park','temple':'shrine'};
-  function migrateCategory(cat){return OLD_KEY_MAP[cat]||cat;}
-  (function(){for(var i=0;i<data.places.length;i++){var p=data.places[i];if(!p.category){p.category='other';}else if(OLD_KEY_MAP[p.category]){p.category=OLD_KEY_MAP[p.category];}}saveDataLocal();})();
-
-  function getCategoryEmoji(key){var c=CATEGORY_MAP[key];return c?c.emoji:'\uD83D\uDCCD';}
-  function buildCategoryOptions(selected){var h='';for(var i=0;i<CATEGORIES.length;i++){var c=CATEGORIES[i];h+='<option value="'+c.key+'"'+(selected===c.key?' selected':'')+'>'+c.emoji+' '+c.label+'</option>';}return h;}
 
   // === Stats (修正3: 12ヶ月グラフ) ===
 
