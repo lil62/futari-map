@@ -12,6 +12,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--ac:#FF6B6B;--red:#E74C3C;--blue:#3498DB;--bg:#fff;--card:#fff;--text:#1a1a1a;--sub:#666;--border:#eee;--nav-bg:#fff;--input-bg:#f5f5f5;--shadow:0 1px 3px rgba(60,64,67,.12);--safe-b:env(safe-area-inset-bottom,0px)}
@@ -20,7 +23,10 @@ body.dark{--bg:#1a1a1a;--card:#2a2a2a;--text:#f0f0f0;--sub:#aaa;--border:#333;--
 
 .hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--border);z-index:100;flex-shrink:0}
 .hd h1{font-size:18px;font-weight:700;color:var(--text)}
-.hd .badge{font-size:11px;background:var(--input-bg);color:var(--sub);padding:4px 10px;border-radius:20px}
+.hd .badge{font-size:11px;padding:4px 10px;border-radius:20px;transition:background .3s,color .3s}
+.hd .badge.disconnected{background:var(--input-bg);color:var(--sub)}
+.hd .badge.connected{background:#d4edda;color:#155724}
+body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 
 .pn{display:none;flex:1;overflow-y:auto;overflow-x:hidden}
 .pn.on{display:flex;flex-direction:column}
@@ -93,6 +99,13 @@ body.dark{--bg:#1a1a1a;--card:#2a2a2a;--text:#f0f0f0;--sub:#aaa;--border:#333;--
 .set-btn{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);font-size:13px;cursor:pointer;margin-top:6px;font-family:inherit;color:var(--text)}
 .set-btn:active{background:var(--input-bg)}
 .set-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--input-bg);font-family:inherit;margin-bottom:6px;color:var(--text)}
+.set-hint{font-size:10px;color:var(--sub);line-height:1.5;margin-top:6px}
+.set-btn-row{display:flex;gap:6px;margin-top:6px}
+.set-btn-row .set-btn{flex:1;margin-top:0}
+.set-btn.btn-connect{border-color:#28a745;color:#28a745}
+.set-btn.btn-connect:active{background:#d4edda}
+.set-btn.btn-disconnect{border-color:var(--red);color:var(--red)}
+.set-btn.btn-disconnect:active{background:#fef0f0}
 
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.8);color:#fff;padding:12px 24px;border-radius:24px;font-size:13px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s}
 .toast.show{opacity:1}
@@ -118,13 +131,52 @@ body.dark{--bg:#1a1a1a;--card:#2a2a2a;--text:#f0f0f0;--sub:#aaa;--border:#333;--
 body.dark .leaflet-control-zoom a{background:var(--card);color:var(--text);border-color:var(--border)}
 body.dark .leaflet-control-attribution{background:rgba(42,42,42,.8);color:var(--sub)}
 body.dark .leaflet-control-attribution a{color:var(--sub)}
+
+/* ============================================
+   Loop 3: 写真機能 CSS
+   ============================================ */
+
+/* --- 写真追加ボタン --- */
+.photo-add-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:12px 16px;margin:12px 0;background:#f0f4ff;border:2px dashed #a8c4ff;border-radius:12px;color:#4a7dff;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s ease;-webkit-tap-highlight-color:transparent}
+.photo-add-btn:hover{background:#e3ecff;border-color:#4a7dff}
+.photo-add-btn:active{transform:scale(.97)}
+.photo-add-btn:disabled{opacity:.5;cursor:not-allowed;border-color:#ccc;color:#999;background:#f5f5f5}
+body.dark .photo-add-btn{background:#1e2a3a;border-color:#3a5a8a;color:#7ab3ff}
+body.dark .photo-add-btn:hover{background:#253a52;border-color:#5a8abf}
+body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#666}
+
+/* --- 写真プレビュー（新規追加シート内） --- */
+.photo-preview{display:none;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.photo-preview::-webkit-scrollbar{display:none}
+.photo-preview-item{position:relative;flex-shrink:0;width:80px;height:80px;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.photo-preview-item img{width:100%;height:100%;object-fit:cover}
+.photo-delete-btn{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:20px;text-align:center;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.photo-delete-btn:active{background:rgba(255,50,50,.8)}
+
+/* --- カレンダーログ内: 横スクロール写真表示 --- */
+.photo-scroll{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.photo-scroll::-webkit-scrollbar{display:none}
+.photo-scroll img{width:120px;height:90px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:pointer;transition:transform .15s ease}
+.photo-scroll img:active{transform:scale(.95)}
+
+/* --- マーカーシート: 代表写真サムネイル --- */
+.photo-thumbnail-wrap{position:relative;display:inline-block;margin:8px 0}
+.photo-thumbnail{width:100%;max-width:200px;height:120px;object-fit:cover;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.photo-badge{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px}
+
+/* --- ライトボックス --- */
+.photo-lightbox{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0);transition:background .2s ease;-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px)}
+.photo-lightbox.active{background:rgba(0,0,0,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.photo-lightbox-content{position:relative;max-width:90vw;max-height:85vh}
+.photo-lightbox-content img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px}
+.photo-lightbox-close{position:absolute;top:-40px;right:0;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:22px;line-height:34px;text-align:center;border:none;cursor:pointer}
 </style>
 </head>
 <body>
 
 <header class="hd">
-  <h1>🗺️ ふたりマップ</h1>
-  <div class="badge">⚪ 未接続</div>
+  <h1>&#x1F5FA;&#xFE0F; ふたりマップ</h1>
+  <div class="badge disconnected" id="sync-badge">&#x26AA; 未接続</div>
 </header>
 
 <div class="pn on" id="p-calendar">
@@ -156,14 +208,19 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
   <div class="settings">
     <div class="set-section">
       <h3><i class="fa-solid fa-cloud"></i> Firebase接続</h3>
-      <input class="set-input" placeholder="apiKey" disabled>
-      <input class="set-input" placeholder="databaseURL" disabled>
-      <button class="set-btn" disabled>接続（Loop 2で実装）</button>
+      <input class="set-input" id="fb-apikey" placeholder="apiKey">
+      <input class="set-input" id="fb-dburl" placeholder="databaseURL（例: https://xxx.firebaseio.com）">
+      <div class="set-btn-row">
+        <button class="set-btn btn-connect" id="fb-connect-btn" onclick="fbConnect()"><i class="fa-solid fa-plug"></i> 接続</button>
+        <button class="set-btn btn-disconnect" id="fb-disconnect-btn" onclick="fbDisconnect()" style="display:none"><i class="fa-solid fa-plug-circle-xmark"></i> 切断</button>
+      </div>
+      <p class="set-hint">&#x26A0;&#xFE0F; Firebaseコンソールでセキュリティルールを設定してください:<br><code style="font-size:10px">{"rules":{".read":"auth!=null",".write":"auth!=null"}}</code><br>テスト時は <code>true</code> でも可（公開注意）</p>
     </div>
     <div class="set-section">
       <h3><i class="fa-solid fa-key"></i> 共有キー（合言葉）</h3>
-      <input class="set-input" placeholder="パートナーと同じ合言葉を入力" disabled>
-      <button class="set-btn" disabled>共有開始（Loop 2で実装）</button>
+      <input class="set-input" id="fb-passphrase" placeholder="パートナーと同じ合言葉を入力">
+      <button class="set-btn btn-connect" id="fb-share-btn" onclick="fbStartShare()"><i class="fa-solid fa-share-nodes"></i> 共有開始</button>
+      <p class="set-hint">&#x1F4A1; 2人で同じ合言葉を入力すると、データがリアルタイム同期されます。合言葉はSHA-256でハッシュ化されルームIDとして使用されます。</p>
     </div>
     <div class="set-section">
       <h3><i class="fa-solid fa-palette"></i> 表示設定</h3>
@@ -225,17 +282,17 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
   var KEY = "fm_data";
   var SAMPLE = {
     places:[
-      {id:"p1",name:"代々木公園",lat:35.6712,lng:139.6950,status:"visited",url:"",createdAt:"2025-07-05"},
-      {id:"p2",name:"東京スカイツリー",lat:35.7101,lng:139.8107,status:"visited",url:"",createdAt:"2025-07-12"},
-      {id:"p3",name:"お台場海浜公園",lat:35.6295,lng:139.7753,status:"visited",url:"",createdAt:"2025-07-19"},
-      {id:"p4",name:"鎌倉 鶴岡八幡宮",lat:35.3192,lng:139.5466,status:"wishlist",url:"https://www.hachimangu.or.jp/",createdAt:"2025-07-01"},
-      {id:"p5",name:"横浜中華街",lat:35.4437,lng:139.6450,status:"wishlist",url:"https://www.chinatown.or.jp/",createdAt:"2025-07-03"}
+      {id:"p1",name:"\u4ee3\u3005\u6728\u516c\u5712",lat:35.6712,lng:139.6950,status:"visited",url:"",createdAt:"2025-07-05"},
+      {id:"p2",name:"\u6771\u4eac\u30b9\u30ab\u30a4\u30c4\u30ea\u30fc",lat:35.7101,lng:139.8107,status:"visited",url:"",createdAt:"2025-07-12"},
+      {id:"p3",name:"\u304a\u53f0\u5834\u6d77\u6d5c\u516c\u5712",lat:35.6295,lng:139.7753,status:"visited",url:"",createdAt:"2025-07-19"},
+      {id:"p4",name:"\u938c\u5009 \u9db4\u5ca1\u516b\u5e61\u5bae",lat:35.3192,lng:139.5466,status:"wishlist",url:"https://www.hachimangu.or.jp/",createdAt:"2025-07-01"},
+      {id:"p5",name:"\u6a2a\u6d5c\u4e2d\u83ef\u8857",lat:35.4437,lng:139.6450,status:"wishlist",url:"https://www.chinatown.or.jp/",createdAt:"2025-07-03"}
     ],
     visits:[
-      {id:"v1",placeId:"p1",date:"2025-07-05",memo:"緑がきれいだった！ピクニック最高",photos:[],createdAt:"2025-07-05"},
-      {id:"v2",placeId:"p2",date:"2025-07-12",memo:"展望台からの夜景が素晴らしい",photos:[],createdAt:"2025-07-12"},
-      {id:"v3",placeId:"p3",date:"2025-07-19",memo:"砂浜で夕日を見た。風が気持ちいい",photos:[],createdAt:"2025-07-19"},
-      {id:"v4",placeId:"p1",date:"2025-07-26",memo:"2回目！今度はバドミントンした",photos:[],createdAt:"2025-07-26"}
+      {id:"v1",placeId:"p1",date:"2025-07-05",memo:"\u7dd1\u304c\u304d\u308c\u3044\u3060\u3063\u305f\uff01\u30d4\u30af\u30cb\u30c3\u30af\u6700\u9ad8",photos:[],createdAt:"2025-07-05"},
+      {id:"v2",placeId:"p2",date:"2025-07-12",memo:"\u5c55\u671b\u53f0\u304b\u3089\u306e\u591c\u666f\u304c\u7d20\u6674\u3089\u3057\u3044",photos:[],createdAt:"2025-07-12"},
+      {id:"v3",placeId:"p3",date:"2025-07-19",memo:"\u7802\u6d5c\u3067\u5915\u65e5\u3092\u898b\u305f\u3002\u98a8\u304c\u6c17\u6301\u3061\u3044\u3044",photos:[],createdAt:"2025-07-19"},
+      {id:"v4",placeId:"p1",date:"2025-07-26",memo:"2\u56de\u76ee\uff01\u4eca\u5ea6\u306f\u30d0\u30c9\u30df\u30f3\u30c8\u30f3\u3057\u305f",photos:[],createdAt:"2025-07-26"}
     ]
   };
 
@@ -245,8 +302,215 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
     LS.set(KEY, JSON.stringify(SAMPLE));
     return JSON.parse(JSON.stringify(SAMPLE));
   }
-  function saveData(){ LS.set(KEY, JSON.stringify(data)); }
+  function saveData(){
+    LS.set(KEY, JSON.stringify(data));
+    fbSync();
+  }
   var data = loadData();
+
+  // === Firebase State ===
+  var fbApp = null;
+  var fbDB = null;
+  var fbConnected = false;
+  var fbRoomId = null;
+  var fbListener = null;
+  var fbConnInfoListener = null;
+  var fbSyncPaused = false;
+
+  // === Firebase: SHA-256 hash ===
+  function sha256(str){
+    var buf = new TextEncoder().encode(str);
+    return crypto.subtle.digest('SHA-256', buf).then(function(hash){
+      var arr = Array.from(new Uint8Array(hash));
+      return arr.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+    });
+  }
+
+  // === Firebase: Update badge ===
+  function updateBadge(connected){
+    var badge = document.getElementById('sync-badge');
+    if(connected){
+      badge.textContent = '\ud83d\udfe2 \u540c\u671f\u4e2d';
+      badge.className = 'badge connected';
+    } else {
+      badge.textContent = '\u26aa \u672a\u63a5\u7d9a';
+      badge.className = 'badge disconnected';
+    }
+  }
+
+  // === Firebase: Connect ===
+  window.fbConnect = function(){
+    var apiKey = document.getElementById('fb-apikey').value.trim();
+    var dbUrl = document.getElementById('fb-dburl').value.trim();
+    if(!apiKey || !dbUrl){
+      toast('apiKey\u3068databaseURL\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044');
+      return;
+    }
+    try {
+      if(fbApp){
+        try{ fbApp.delete(); }catch(e){}
+        fbApp = null;
+        fbDB = null;
+      }
+      var config = { apiKey: apiKey, databaseURL: dbUrl };
+      fbApp = firebase.initializeApp(config);
+      fbDB = firebase.database();
+      fbConnected = true;
+      LS.set('fm_fb_apikey', apiKey);
+      LS.set('fm_fb_dburl', dbUrl);
+      document.getElementById('fb-connect-btn').style.display = 'none';
+      document.getElementById('fb-disconnect-btn').style.display = '';
+      fbConnInfoListener = fbDB.ref('.info/connected').on('value', function(snap){
+        if(snap.val() === true){
+          updateBadge(true);
+        } else {
+          if(fbConnected) updateBadge(false);
+        }
+      });
+      toast('Firebase\u63a5\u7d9a\u5b8c\u4e86\uff01');
+      var pass = document.getElementById('fb-passphrase').value.trim();
+      if(!pass){
+        var savedPass = LS.get('fm_fb_pass');
+        if(savedPass){
+          document.getElementById('fb-passphrase').value = savedPass;
+          pass = savedPass;
+        }
+      }
+      if(pass){
+        fbStartShareInternal(pass);
+      } else {
+        updateBadge(true);
+      }
+    } catch(e){
+      toast('\u63a5\u7d9a\u306b\u5931\u6557\u3057\u307e\u3057\u305f: ' + (e.message || e));
+      fbConnected = false;
+      updateBadge(false);
+    }
+  };
+
+  // === Firebase: Disconnect ===
+  window.fbDisconnect = function(){
+    fbStopListening();
+    if(fbApp){
+      try{ fbApp.delete(); }catch(e){}
+      fbApp = null;
+      fbDB = null;
+    }
+    fbConnected = false;
+    fbRoomId = null;
+    LS.rm('fm_fb_apikey');
+    LS.rm('fm_fb_dburl');
+    LS.rm('fm_fb_pass');
+    document.getElementById('fb-connect-btn').style.display = '';
+    document.getElementById('fb-disconnect-btn').style.display = 'none';
+    updateBadge(false);
+    toast('Firebase\u5207\u65ad\u3057\u307e\u3057\u305f\uff08\u30ed\u30fc\u30ab\u30eb\u30e2\u30fc\u30c9\uff09');
+  };
+
+  // === Firebase: Start Share (合言葉) ===
+  window.fbStartShare = function(){
+    var pass = document.getElementById('fb-passphrase').value.trim();
+    if(!pass){
+      toast('\u5408\u8a00\u8449\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044');
+      return;
+    }
+    if(!fbConnected || !fbDB){
+      toast('\u5148\u306bFirebase\u306b\u63a5\u7d9a\u3057\u3066\u304f\u3060\u3055\u3044');
+      return;
+    }
+    fbStartShareInternal(pass);
+  };
+
+  function fbStartShareInternal(pass){
+    LS.set('fm_fb_pass', pass);
+    sha256(pass).then(function(hash){
+      fbRoomId = hash;
+      fbStopListening();
+      fbListen();
+      fbSync();
+      toast('\u5171\u6709\u958b\u59cb\uff01 \u30eb\u30fc\u30e0\u306b\u63a5\u7d9a\u3057\u307e\u3057\u305f');
+    }).catch(function(e){
+      toast('\u30cf\u30c3\u30b7\u30e5\u751f\u6210\u306b\u5931\u6557\u3057\u307e\u3057\u305f');
+    });
+  }
+
+  // === Firebase: Sync (write) ===
+  function fbSync(){
+    if(!fbConnected || !fbRoomId || !fbDB || fbSyncPaused) return;
+    try {
+      fbDB.ref(fbRoomId).set({
+        places: data.places,
+        visits: data.visits,
+        updatedAt: Date.now()
+      });
+    } catch(e){}
+  }
+
+  // === Firebase: Listen (read) ===
+  function fbListen(){
+    if(!fbConnected || !fbRoomId || !fbDB) return;
+    fbListener = fbDB.ref(fbRoomId).on('value', function(snap){
+      var val = snap.val();
+      if(val && val.places){
+        var remote = JSON.stringify({places:val.places, visits:val.visits||[]});
+        var local = JSON.stringify({places:data.places, visits:data.visits});
+        if(remote !== local){
+          fbSyncPaused = true;
+          data.places = val.places;
+          data.visits = val.visits || [];
+          LS.set(KEY, JSON.stringify(data));
+          renderCalendar();
+          if(mapInitialized) renderPins();
+          fbSyncPaused = false;
+        }
+      }
+    });
+  }
+
+  // === Firebase: Stop listening ===
+  function fbStopListening(){
+    if(fbListener && fbDB && fbRoomId){
+      fbDB.ref(fbRoomId).off('value', fbListener);
+      fbListener = null;
+    }
+    if(fbConnInfoListener && fbDB){
+      fbDB.ref('.info/connected').off('value', fbConnInfoListener);
+      fbConnInfoListener = null;
+    }
+  }
+
+  // === Firebase: Auto-reconnect on visibility change ===
+  function fbAutoReconnect(){
+    if(!fbConnected || !fbRoomId || !fbDB) return;
+    fbStopListening();
+    fbDB.ref('.info/connected').on('value', function(snap){
+      if(snap.val() === true){
+        updateBadge(true);
+      } else {
+        if(fbConnected) updateBadge(false);
+      }
+    });
+    fbListen();
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) fbAutoReconnect();
+  });
+  window.addEventListener('pageshow', function(){ fbAutoReconnect(); });
+  window.addEventListener('focus', function(){ fbAutoReconnect(); });
+
+  // === Firebase: Restore saved settings on load ===
+  function fbRestoreSettings(){
+    var apiKey = LS.get('fm_fb_apikey');
+    var dbUrl = LS.get('fm_fb_dburl');
+    var pass = LS.get('fm_fb_pass');
+    if(apiKey) document.getElementById('fb-apikey').value = apiKey;
+    if(dbUrl) document.getElementById('fb-dburl').value = dbUrl;
+    if(pass) document.getElementById('fb-passphrase').value = pass;
+    if(apiKey && dbUrl){
+      setTimeout(function(){ fbConnect(); }, 500);
+    }
+  }
 
   // === Toast ===
   var toastTimer = null;
@@ -298,9 +562,9 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
   };
 
   function renderCalendar(){
-    document.getElementById("cal-title").textContent = calYear + "年" + (calMonth+1) + "月";
+    document.getElementById("cal-title").textContent = calYear + "\u5e74" + (calMonth+1) + "\u6708";
     var grid = document.getElementById("cal-grid");
-    var dows = ["日","月","火","水","木","金","土"];
+    var dows = ["\u65e5","\u6708","\u706b","\u6c34","\u6728","\u91d1","\u571f"];
     var html = "";
     for(var i=0;i<7;i++) html += '<div class="cal-dow">'+dows[i]+"</div>";
 
@@ -352,15 +616,18 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
 
     var logEl = document.getElementById("day-log");
     if(dayVisits.length === 0){
-      logEl.innerHTML = '<div class="no-data">この日の記録はありません</div>';
+      logEl.innerHTML = '<div class="no-data">\u3053\u306e\u65e5\u306e\u8a18\u9332\u306f\u3042\u308a\u307e\u305b\u3093</div>';
     } else {
       var h = "";
       for(var i=0;i<dayVisits.length;i++){
         var v = dayVisits[i];
         var place = findPlace(v.placeId);
-        var pname = place ? place.name : "不明な場所";
-        h += '<div class="log-card"><h4><i class="fa-solid fa-location-dot"></i> '+pname+'</h4><p>'+v.memo+'</p>';
-        h += '<button class="btn-map" onclick="goToMap(\''+v.placeId+'\')"><i class="fa-solid fa-map"></i> 地図で見る</button></div>';
+        var pname = place ? place.name : "\u4e0d\u660e\u306a\u5834\u6240";
+        h += '<div class="log-card"><h4><i class="fa-solid fa-location-dot"></i> '+pname+'</h4>';
+        if(v.memo) h += '<p>'+v.memo+'</p>';
+        // Loop 3: 写真横スクロール表示
+        h += renderPhotoScrollHTML(v.photos, v.id);
+        h += '<button class="btn-map" onclick="goToMap(\''+v.placeId+'\')"><i class="fa-solid fa-map"></i> \u5730\u56f3\u3067\u898b\u308b</button></div>';
       }
       logEl.innerHTML = h;
     }
@@ -376,17 +643,15 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
   }
 
   window.goToMap = function(placeId){
-    for(var j=0;j<tabs.length;j++) tabs[j].classList.remove("on");
-    for(var j=0;j<panels.length;j++) panels[j].classList.remove("on");
+    for(var j=0; j<tabs.length; j++) tabs[j].classList.remove("on");
+    for(var j=0; j<panels.length; j++) panels[j].classList.remove("on");
     tabs[1].classList.add("on");
     document.getElementById("p-map").classList.add("on");
     initMap();
-    // Fly to the place
     setTimeout(function(){
       var place = findPlace(placeId);
       if(place && map){
         map.flyTo([place.lat, place.lng], 15, {duration: 0.8});
-        // Bounce the marker
         if(markers[placeId]){
           var el = markers[placeId].getElement();
           if(el){
@@ -430,8 +695,6 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
 
   function renderPins(){
     if(!map) return;
-
-    // Remove existing markers
     for(var key in markers){
       if(markers.hasOwnProperty(key)){
         map.removeLayer(markers[key]);
@@ -465,42 +728,77 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
 
   function showPinSheet(place){
     var color = place.status==="visited" ? "var(--red)" : "var(--blue)";
-    var stxt = place.status==="visited" ? "行った場所" : "行きたい場所";
+    var stxt = place.status==="visited" ? "\u884c\u3063\u305f\u5834\u6240" : "\u884c\u304d\u305f\u3044\u5834\u6240";
     var h = '<div class="marker-preview"><div class="pin-dot" style="background:'+color+'"></div><div><h4>'+place.name+'</h4><div class="sub">'+stxt+'</div></div></div>';
 
     if(place.url){
-      h += '<a href="'+place.url+'" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);display:block;margin:8px 0"><i class="fa-solid fa-link"></i> Webサイトを開く</a>';
+      h += '<a href="'+place.url+'" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);display:block;margin:8px 0"><i class="fa-solid fa-link"></i> Web\u30b5\u30a4\u30c8\u3092\u958b\u304f</a>';
     }
 
-    var visits = [];
+    // Loop 3: 代表写真サムネイル表示
+    var placeVisits = [];
     for(var i=0;i<data.visits.length;i++){
-      if(data.visits[i].placeId===place.id) visits.push(data.visits[i]);
+      if(data.visits[i].placeId===place.id) placeVisits.push(data.visits[i]);
     }
-    if(visits.length>0){
+    var representativePhotos = null;
+    for(var i=placeVisits.length-1;i>=0;i--){
+      if(placeVisits[i].photos && placeVisits[i].photos.length > 0){
+        representativePhotos = placeVisits[i].photos;
+        break;
+      }
+    }
+    if(representativePhotos){
+      h += renderThumbnailHTML(representativePhotos);
+    }
+
+    if(placeVisits.length>0){
       h += '<div class="visit-list">';
-      for(var i=0;i<visits.length;i++){
-        h += '<div class="visit-item"><span class="date">'+visits[i].date+'</span><div class="memo">'+visits[i].memo+'</div></div>';
+      for(var i=0;i<placeVisits.length;i++){
+        h += '<div class="visit-item"><span class="date">'+placeVisits[i].date+'</span><div class="memo">'+placeVisits[i].memo+'</div></div>';
       }
       h += '</div>';
     }
 
     if(place.status==="wishlist"){
-      h += '<button class="btn btn-primary" onclick="markVisited(\''+place.id+'\')"><i class="fa-solid fa-check"></i> 行った記録に変える</button>';
+      h += '<button class="btn btn-primary" onclick="markVisited(\''+place.id+'\')"><i class="fa-solid fa-check"></i> \u884c\u3063\u305f\u8a18\u9332\u306b\u5909\u3048\u308b</button>';
     }
-    h += '<button class="btn btn-secondary" onclick="closeS()">閉じる</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">\u9589\u3058\u308b</button>';
     openS(h);
   }
 
   window.markVisited = function(placeId){
     var place = findPlace(placeId);
     if(!place) return;
-    place.status = "visited";
+    // Loop 3: 写真追加UIを含むシートを表示
     var today = new Date().toISOString().split("T")[0];
-    data.visits.push({id:"v"+Date.now(),placeId:placeId,date:today,memo:"",photos:[],createdAt:today});
+    var h = '<h3><i class="fa-solid fa-check-circle"></i> \u884c\u3063\u305f\u8a18\u9332\u306b\u5909\u3048\u308b</h3>';
+    h += '<div class="marker-preview"><div class="pin-dot" style="background:var(--red)"></div><div><h4>'+place.name+'</h4><div class="sub">\u2192 \u884c\u3063\u305f\u5834\u6240\u306b\u5909\u66f4\u3057\u307e\u3059</div></div></div>';
+    h += '<div class="fg"><label>\u65e5\u4ed8</label><input type="date" id="mv-date" value="'+today+'"></div>';
+    h += '<div class="fg"><label>\u4e00\u8a00\u30e1\u30e2</label><textarea id="mv-memo" placeholder="\u611f\u60f3\u3092\u66f8\u3053\u3046"></textarea></div>';
+    // 写真追加セクション
+    h += '<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\ud83d\udcf7 \u5199\u771f\u3092\u8ffd\u52a0</button>';
+    h += '<input type="file" id="photo-file-input" accept="image/*" multiple style="display:none">';
+    h += '<div id="photo-preview-container" class="photo-preview"></div></div>';
+    h += '<button class="btn btn-primary" onclick="confirmMarkVisited(\''+placeId+'\')"><i class="fa-solid fa-check"></i> \u4fdd\u5b58\u3059\u308b</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">\u30ad\u30e3\u30f3\u30bb\u30eb</button>';
+    openS(h);
+    photoReset();
+    initPhotoInput();
+  };
+
+  window.confirmMarkVisited = function(placeId){
+    var place = findPlace(placeId);
+    if(!place) return;
+    place.status = "visited";
+    var date = document.getElementById("mv-date").value;
+    var memo = document.getElementById("mv-memo").value.trim();
+    var photos = photoGetPhotos();
+    data.visits.push({id:"v"+Date.now(),placeId:placeId,date:date,memo:memo,photos:photos,createdAt:date});
     saveData();
+    renderCalendar();
     renderPins();
     closeS();
-    toast(place.name + " を行った記録に変えました！");
+    toast(place.name + " \u3092\u884c\u3063\u305f\u8a18\u9332\u306b\u5909\u3048\u307e\u3057\u305f\uff01");
   };
 
   // === Search ===
@@ -520,7 +818,7 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
     var q = document.getElementById("map-input").value.trim();
     if(!q) return;
     var el = document.getElementById("map-results");
-    el.innerHTML = '<div class="map-result-item"><i class="fa-solid fa-spinner fa-spin"></i> 検索中...</div>';
+    el.innerHTML = '<div class="map-result-item"><i class="fa-solid fa-spinner fa-spin"></i> \u691c\u7d22\u4e2d...</div>';
     el.classList.add("show");
 
     fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&countrycodes=jp&limit=5")
@@ -528,7 +826,7 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
       .then(function(res){
         searchResults = res;
         if(res.length===0){
-          el.innerHTML = '<div class="map-result-item">見つかりませんでした</div>';
+          el.innerHTML = '<div class="map-result-item">\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f</div>';
           return;
         }
         var h = "";
@@ -539,7 +837,7 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
         el.innerHTML = h;
       })
       .catch(function(){
-        el.innerHTML = '<div class="map-result-item">検索エラー（ネットワーク確認）</div>';
+        el.innerHTML = '<div class="map-result-item">\u691c\u7d22\u30a8\u30e9\u30fc\uff08\u30cd\u30c3\u30c8\u30ef\u30fc\u30af\u78ba\u8a8d\uff09</div>';
       });
   }
 
@@ -564,21 +862,27 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
     document.getElementById("map-results").classList.remove("show");
     document.getElementById("map-input").value = "";
     if(map) map.flyTo([lat, lng], 14, {duration: 0.6});
-    toast(name + " を行きたいリストに追加！");
+    toast(name + " \u3092\u884c\u304d\u305f\u3044\u30ea\u30b9\u30c8\u306b\u8ffd\u52a0\uff01");
   };
 
   // === Add Sheet ===
   window.openAddSheet = function(){
     var today = new Date().toISOString().split("T")[0];
-    var h = '<h3><i class="fa-solid fa-pen-to-square"></i> 新しい記録を追加</h3>';
-    h += '<div class="fg"><label>場所の名前 *</label><input type="text" id="add-name" placeholder="例：〇〇カフェ"></div>';
-    h += '<div class="fg"><label>日付</label><input type="date" id="add-date" value="'+today+'"></div>';
-    h += '<div class="fg"><label>一言メモ</label><textarea id="add-memo" placeholder="例：パンケーキが美味しかった！"></textarea></div>';
-    h += '<div class="fg"><label>ステータス</label><select id="add-status"><option value="visited">行った（赤ピン）</option><option value="wishlist">行きたい（青ピン）</option></select></div>';
-    h += '<div class="fg"><label>URL（任意）</label><input type="url" id="add-url" placeholder="https://..."></div>';
-    h += '<button class="btn btn-primary" onclick="saveNewRecord()">保存する</button>';
-    h += '<button class="btn btn-secondary" onclick="closeS()">キャンセル</button>';
+    var h = '<h3><i class="fa-solid fa-pen-to-square"></i> \u65b0\u3057\u3044\u8a18\u9332\u3092\u8ffd\u52a0</h3>';
+    h += '<div class="fg"><label>\u5834\u6240\u306e\u540d\u524d *</label><input type="text" id="add-name" placeholder="\u4f8b\uff1a\u3007\u3007\u30ab\u30d5\u30a7"></div>';
+    h += '<div class="fg"><label>\u65e5\u4ed8</label><input type="date" id="add-date" value="'+today+'"></div>';
+    h += '<div class="fg"><label>\u4e00\u8a00\u30e1\u30e2</label><textarea id="add-memo" placeholder="\u4f8b\uff1a\u30d1\u30f3\u30b1\u30fc\u30ad\u304c\u7f8e\u5473\u3057\u304b\u3063\u305f\uff01"></textarea></div>';
+    h += '<div class="fg"><label>\u30b9\u30c6\u30fc\u30bf\u30b9</label><select id="add-status"><option value="visited">\u884c\u3063\u305f\uff08\u8d64\u30d4\u30f3\uff09</option><option value="wishlist">\u884c\u304d\u305f\u3044\uff08\u9752\u30d4\u30f3\uff09</option></select></div>';
+    h += '<div class="fg"><label>URL\uff08\u4efb\u610f\uff09</label><input type="url" id="add-url" placeholder="https://..."></div>';
+    // Loop 3: 写真追加セクション
+    h += '<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\ud83d\udcf7 \u5199\u771f\u3092\u8ffd\u52a0</button>';
+    h += '<input type="file" id="photo-file-input" accept="image/*" multiple style="display:none">';
+    h += '<div id="photo-preview-container" class="photo-preview"></div></div>';
+    h += '<button class="btn btn-primary" onclick="saveNewRecord()">\u4fdd\u5b58\u3059\u308b</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">\u30ad\u30e3\u30f3\u30bb\u30eb</button>';
     openS(h);
+    photoReset();
+    initPhotoInput();
   };
 
   window.saveNewRecord = function(){
@@ -588,7 +892,7 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
     var status = document.getElementById("add-status").value;
     var url = document.getElementById("add-url").value.trim();
 
-    if(!name){ toast("場所名を入力してください"); return; }
+    if(!name){ toast("\u5834\u6240\u540d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044"); return; }
 
     var lat = 35.5 + Math.random()*0.4;
     var lng = 139.5 + Math.random()*0.4;
@@ -597,13 +901,14 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
     data.places.push({id:pid,name:name,lat:lat,lng:lng,status:status,url:url,createdAt:date});
 
     if(status==="visited"){
-      data.visits.push({id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:[],createdAt:date});
+      var photos = photoGetPhotos();
+      data.visits.push({id:"v"+Date.now(),placeId:pid,date:date,memo:memo,photos:photos,createdAt:date});
     }
     saveData();
     renderCalendar();
     renderPins();
     closeS();
-    toast(name + " を保存しました！");
+    toast(name + " \u3092\u4fdd\u5b58\u3057\u307e\u3057\u305f\uff01");
   };
 
   // === Settings ===
@@ -622,8 +927,8 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
       a.download = "futari-map-backup.json";
       a.click();
       URL.revokeObjectURL(a.href);
-      toast("エクスポート完了");
-    }catch(e){ toast("エクスポートに失敗しました"); }
+      toast("\u30a8\u30af\u30b9\u30dd\u30fc\u30c8\u5b8c\u4e86");
+    }catch(e){ toast("\u30a8\u30af\u30b9\u30dd\u30fc\u30c8\u306b\u5931\u6557\u3057\u307e\u3057\u305f"); }
   };
 
   window.triggerImport = function(){
@@ -642,32 +947,256 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
           saveData();
           renderCalendar();
           renderPins();
-          toast("インポート完了！");
+          toast("\u30a4\u30f3\u30dd\u30fc\u30c8\u5b8c\u4e86\uff01");
         } else {
-          toast("無効なデータ形式です");
+          toast("\u7121\u52b9\u306a\u30c7\u30fc\u30bf\u5f62\u5f0f\u3067\u3059");
         }
-      }catch(err){ toast("JSONの解析に失敗しました"); }
+      }catch(err){ toast("JSON\u306e\u89e3\u6790\u306b\u5931\u6557\u3057\u307e\u3057\u305f"); }
     };
     reader.readAsText(file);
     e.target.value = "";
   });
 
   window.clearData = function(){
-    var h = '<h3><i class="fa-solid fa-triangle-exclamation"></i> 全データ削除</h3>';
-    h += '<p style="font-size:13px;color:var(--sub);margin-bottom:16px;line-height:1.5">全てのデータを削除しますか？<br>この操作は元に戻せません。</p>';
-    h += '<button class="btn btn-danger" onclick="confirmClear()">削除する</button>';
-    h += '<button class="btn btn-secondary" onclick="closeS()">キャンセル</button>';
+    var h = '<h3><i class="fa-solid fa-triangle-exclamation"></i> \u5168\u30c7\u30fc\u30bf\u524a\u9664</h3>';
+    h += '<p style="font-size:13px;color:var(--sub);margin-bottom:16px;line-height:1.5">\u5168\u3066\u306e\u30c7\u30fc\u30bf\u3092\u524a\u9664\u3057\u307e\u3059\u304b\uff1f<br>\u3053\u306e\u64cd\u4f5c\u306f\u5143\u306b\u623b\u305b\u307e\u305b\u3093\u3002</p>';
+    if(fbConnected && fbRoomId){
+      h += '<p style="font-size:12px;color:var(--red);margin-bottom:12px"><i class="fa-solid fa-cloud"></i> Firebase\u5074\u306e\u30c7\u30fc\u30bf\u3082\u524a\u9664\u3055\u308c\u307e\u3059</p>';
+    }
+    h += '<button class="btn btn-danger" onclick="confirmClear()">\u524a\u9664\u3059\u308b</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">\u30ad\u30e3\u30f3\u30bb\u30eb</button>';
     openS(h);
   };
 
   window.confirmClear = function(){
     data = {places:[],visits:[]};
-    saveData();
+    LS.set(KEY, JSON.stringify(data));
+    if(fbConnected && fbRoomId && fbDB){
+      try{ fbDB.ref(fbRoomId).remove(); }catch(e){}
+    }
     renderCalendar();
     renderPins();
     closeS();
-    toast("全データを削除しました");
+    toast("\u5168\u30c7\u30fc\u30bf\u3092\u524a\u9664\u3057\u307e\u3057\u305f");
   };
+
+  // ============================================================
+  // Loop 3: 写真機能（インライン統合版、var宣言のみ）
+  // ============================================================
+  var photoCurrentPhotos = [];
+  var PHOTO_MAX = 5;
+  var PHOTO_COMPRESS_OPTIONS = {
+    maxSizeMB: 0.3,
+    maxWidthOrHeight: 1200,
+    useWebWorker: true,
+    fileType: 'image/webp'
+  };
+
+  // 写真ファイル入力を初期化
+  function initPhotoInput(){
+    var fileInput = document.getElementById('photo-file-input');
+    if(fileInput){
+      fileInput.addEventListener('change', photoHandleFileSelect);
+    }
+  }
+
+  // ファイル選択トリガー
+  window.photoTrigger = function(){
+    var fileInput = document.getElementById('photo-file-input');
+    if(fileInput){
+      fileInput.value = '';
+      fileInput.click();
+    }
+  };
+
+  // ファイル選択ハンドラー
+  function photoHandleFileSelect(event){
+    var files = Array.prototype.slice.call(event.target.files);
+    if(!files.length) return;
+
+    var remaining = PHOTO_MAX - photoCurrentPhotos.length;
+    if(remaining <= 0){
+      toast('\u5199\u771f\u306f\u6700\u5927' + PHOTO_MAX + '\u679a\u307e\u3067\u3067\u3059');
+      return;
+    }
+
+    var filesToProcess = files.slice(0, remaining);
+    if(files.length > remaining){
+      toast('\u6b8b\u308a' + remaining + '\u679a\u307e\u3067\u8ffd\u52a0\u3067\u304d\u307e\u3059');
+    }
+
+    photoShowLoading(true);
+
+    var processed = 0;
+    var results = [];
+    for(var i=0; i<filesToProcess.length; i++){
+      (function(file, idx){
+        photoCompressAndConvert(file).then(function(base64){
+          results[idx] = base64;
+          processed++;
+          if(processed === filesToProcess.length){
+            for(var j=0; j<results.length; j++){
+              if(results[j]) photoCurrentPhotos.push(results[j]);
+            }
+            photoRenderPreview();
+            photoShowLoading(false);
+          }
+        }).catch(function(){
+          results[idx] = null;
+          processed++;
+          if(processed === filesToProcess.length){
+            for(var j=0; j<results.length; j++){
+              if(results[j]) photoCurrentPhotos.push(results[j]);
+            }
+            photoRenderPreview();
+            photoShowLoading(false);
+          }
+        });
+      })(filesToProcess[i], i);
+    }
+  }
+
+  // 画像圧縮 & Base64変換
+  function photoCompressAndConvert(file){
+    return imageCompression(file, PHOTO_COMPRESS_OPTIONS).then(function(compressedBlob){
+      return new Promise(function(resolve, reject){
+        var reader = new FileReader();
+        reader.onload = function(){ resolve(reader.result); };
+        reader.onerror = function(){ reject(new Error('FileReader failed')); };
+        reader.readAsDataURL(compressedBlob);
+      });
+    });
+  }
+
+  // プレビュー描画
+  function photoRenderPreview(){
+    var container = document.getElementById('photo-preview-container');
+    if(!container) return;
+
+    if(photoCurrentPhotos.length === 0){
+      container.innerHTML = '';
+      container.style.display = 'none';
+      photoUpdateCount();
+      return;
+    }
+
+    container.style.display = 'flex';
+    var html = '';
+    for(var i=0; i<photoCurrentPhotos.length; i++){
+      html += '<div class="photo-preview-item" data-index="'+i+'">';
+      html += '<img src="'+photoCurrentPhotos[i]+'" alt="\u5199\u771f'+(i+1)+'">';
+      html += '<button type="button" class="photo-delete-btn" onclick="photoRemove('+i+')" aria-label="\u524a\u9664">\u00d7</button>';
+      html += '</div>';
+    }
+    container.innerHTML = html;
+    photoUpdateCount();
+  }
+
+  // 写真削除
+  window.photoRemove = function(index){
+    if(index >= 0 && index < photoCurrentPhotos.length){
+      photoCurrentPhotos.splice(index, 1);
+      photoRenderPreview();
+      if(navigator.vibrate) navigator.vibrate(30);
+    }
+  };
+
+  // 枚数カウンター更新
+  function photoUpdateCount(){
+    var btn = document.getElementById('photo-add-btn');
+    if(!btn) return;
+    if(photoCurrentPhotos.length >= PHOTO_MAX){
+      btn.textContent = '\ud83d\udcf7 \u5199\u771f ' + photoCurrentPhotos.length + '/' + PHOTO_MAX + '\uff08\u4e0a\u9650\uff09';
+      btn.disabled = true;
+    } else {
+      btn.textContent = photoCurrentPhotos.length > 0
+        ? '\ud83d\udcf7 \u5199\u771f\u3092\u8ffd\u52a0\uff08' + photoCurrentPhotos.length + '/' + PHOTO_MAX + '\uff09'
+        : '\ud83d\udcf7 \u5199\u771f\u3092\u8ffd\u52a0';
+      btn.disabled = false;
+    }
+  }
+
+  // ローディング表示
+  function photoShowLoading(isLoading){
+    var btn = document.getElementById('photo-add-btn');
+    if(!btn) return;
+    if(isLoading){
+      btn.disabled = true;
+      btn.textContent = '\u23f3 \u5727\u7e2e\u4e2d...';
+    } else {
+      btn.disabled = false;
+      photoUpdateCount();
+    }
+  }
+
+  // 写真データ取得
+  function photoGetPhotos(){
+    return photoCurrentPhotos.slice();
+  }
+  window.photoGetPhotos = photoGetPhotos;
+
+  // リセット
+  function photoReset(){
+    photoCurrentPhotos = [];
+  }
+  window.photoReset = photoReset;
+
+  // カレンダーログ用: 横スクロール写真HTML生成
+  function renderPhotoScrollHTML(photos, visitId){
+    if(!photos || photos.length === 0) return '';
+    var html = '<div class="photo-scroll" data-visit-id="'+visitId+'">';
+    for(var i=0; i<photos.length; i++){
+      html += '<img src="'+photos[i]+'" alt="\u5199\u771f'+(i+1)+'" loading="lazy" data-visit="'+visitId+'" data-index="'+i+'" class="photo-scroll-img">';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // マーカーシート用: 代表写真サムネイルHTML生成
+  function renderThumbnailHTML(photos){
+    if(!photos || photos.length === 0) return '';
+    var badge = photos.length > 1 ? '<span class="photo-badge">+' + (photos.length - 1) + '</span>' : '';
+    return '<div class="photo-thumbnail-wrap"><img src="'+photos[0]+'" alt="\u4ee3\u8868\u5199\u771f" class="photo-thumbnail">'+badge+'</div>';
+  }
+
+  // ライトボックス（イベント委譲）
+  document.addEventListener('click', function(e){
+    if(!e.target.classList.contains('photo-scroll-img')) return;
+    var src = e.target.src;
+    var overlay = document.createElement('div');
+    overlay.className = 'photo-lightbox';
+    overlay.innerHTML = '<div class="photo-lightbox-content"><img src="'+src+'" alt="\u62e1\u5927\u5199\u771f"><button class="photo-lightbox-close" aria-label="\u9589\u3058\u308b">\u00d7</button></div>';
+    overlay.addEventListener('click', function(ev){
+      if(ev.target === overlay || ev.target.classList.contains('photo-lightbox-close')){
+        overlay.classList.remove('active');
+        setTimeout(function(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200);
+      }
+    });
+    document.body.appendChild(overlay);
+    requestAnimationFrame(function(){ overlay.classList.add('active'); });
+  });
+
+  // 長押し削除（モバイル）
+  (function(){
+    var longPressTimer = null;
+    document.addEventListener('touchstart', function(e){
+      var item = e.target.closest ? e.target.closest('.photo-preview-item') : null;
+      if(!item) return;
+      longPressTimer = setTimeout(function(){
+        var index = parseInt(item.getAttribute('data-index'), 10);
+        if(confirm('\u3053\u306e\u5199\u771f\u3092\u524a\u9664\u3057\u307e\u3059\u304b\uff1f')){
+          window.photoRemove(index);
+        }
+        if(navigator.vibrate) navigator.vibrate(50);
+      }, 500);
+    }, false);
+    document.addEventListener('touchend', function(){
+      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    }, false);
+    document.addEventListener('touchmove', function(){
+      if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+    }, false);
+  })();
 
   // === Init ===
   if(LS.get("fm_dark")==="1"){
@@ -675,6 +1204,7 @@ body.dark .leaflet-control-attribution a{color:var(--sub)}
     document.getElementById("dark-toggle").classList.add("on");
   }
   renderCalendar();
+  fbRestoreSettings();
 
 })();
 </script>
