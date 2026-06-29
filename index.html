@@ -460,9 +460,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
       if(JSON.stringify(newPlaces) === JSON.stringify(data.places) &&
          JSON.stringify(newVisits) === JSON.stringify(data.visits)) return;
       fbSyncPaused = true;
-      data.places = newPlaces;
-      data.visits = newVisits;
-      saveDataLocal();
+      data.places=newPlaces;data.visits=newVisits;for(var _mi=0;_mi<data.places.length;_mi++){if(!data.places[_mi].category)data.places[_mi].category='other';else if(OLD_KEY_MAP&&OLD_KEY_MAP[data.places[_mi].category])data.places[_mi].category=OLD_KEY_MAP[data.places[_mi].category];}saveDataLocal();
       refreshUI();
       fbSyncPaused = false;
     });
@@ -939,7 +937,7 @@ body.dark .memory-banner{background:linear-gradient(135deg,#3a2e1a,#4a3520)}
   // Old key migration
   var OLD_KEY_MAP={'restaurant':'gourmet','leisure':'themepark','nature':'park','park_nature':'park','temple':'shrine'};
   function migrateCategory(cat){return OLD_KEY_MAP[cat]||cat;}
-  (function(){for(var i=0;i<data.places.length;i++){var p=data.places[i];if(p.category&&OLD_KEY_MAP[p.category]){p.category=OLD_KEY_MAP[p.category];}}saveDataLocal();})();
+  (function(){for(var i=0;i<data.places.length;i++){var p=data.places[i];if(!p.category){p.category='other';}else if(OLD_KEY_MAP[p.category]){p.category=OLD_KEY_MAP[p.category];}}saveDataLocal();})();
 
   function getCategoryEmoji(key){var c=CATEGORY_MAP[key];return c?c.emoji:'\uD83D\uDCCD';}
   function buildCategoryOptions(selected){var h='';for(var i=0;i<CATEGORIES.length;i++){var c=CATEGORIES[i];h+='<option value="'+c.key+'"'+(selected===c.key?' selected':'')+'>'+c.emoji+' '+c.label+'</option>';}return h;}
