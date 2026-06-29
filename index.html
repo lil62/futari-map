@@ -21,6 +21,9 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
 body.dark{--bg:#1a1a1a;--card:#2a2a2a;--text:#f0f0f0;--sub:#aaa;--border:#333;--nav-bg:#222;--input-bg:#333;--shadow:0 1px 3px rgba(0,0,0,.3)}
 
+/* 修正6: iOS Safari 自動ズーム防止 */
+input,textarea,select{font-size:16px !important}
+
 .hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--border);z-index:100;flex-shrink:0}
 .hd h1{font-size:18px;font-weight:700;color:var(--text)}
 .hd .badge{font-size:11px;padding:4px 10px;border-radius:20px;transition:background .3s,color .3s}
@@ -37,7 +40,7 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .nb.on{color:var(--ac)}
 
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:16px}
-.cal-header h2{font-size:16px;font-weight:600}
+.cal-header h2{font-size:16px;font-weight:600;cursor:pointer;position:relative}
 .cal-header button{border:none;background:none;font-size:20px;color:var(--sub);cursor:pointer;padding:8px;line-height:1}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 8px}
 .cal-dow{text-align:center;font-size:11px;color:var(--sub);padding:4px 0;font-weight:500}
@@ -47,22 +50,30 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .cal-day.has-visit::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--red)}
 .cal-day.empty{pointer-events:none;color:transparent}
 .day-log{padding:0 16px;max-height:0;overflow:hidden;transition:max-height .3s ease}
-.day-log.show{max-height:600px}
+.day-log.show{max-height:800px}
 .log-card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
 .log-card h4{font-size:14px;margin-bottom:4px}
 .log-card p{font-size:12px;color:var(--sub);margin-bottom:8px;line-height:1.5}
 .log-card .btn-map{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--blue);border:none;background:none;cursor:pointer;font-weight:600;padding:4px 0}
+.log-card .btn-edit{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ac);border:none;background:none;cursor:pointer;font-weight:600;padding:4px 0;margin-left:12px}
 
 .map-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
 #leaflet-map{width:100%;height:100%;z-index:1}
-.map-search{position:absolute;top:12px;left:12px;right:12px;z-index:1000}
-.map-search input{width:100%;padding:10px 14px 10px 36px;border:none;border-radius:24px;font-size:14px;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;color:var(--text)}
-.map-search input:focus{outline:2px solid var(--ac)}
-.map-search .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:14px}
-.map-results{position:absolute;top:48px;left:0;right:0;background:var(--card);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.15);max-height:200px;overflow-y:auto;display:none}
+.map-search{position:absolute;top:12px;left:12px;right:12px;z-index:1000;display:flex;align-items:center;gap:0}
+.map-search-wrap{flex:1;position:relative}
+.map-search-wrap input{width:100%;padding:10px 14px 10px 36px;border:none;border-radius:24px 0 0 24px;font-size:16px;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,.15);font-family:inherit;color:var(--text)}
+.map-search-wrap input:focus{outline:2px solid var(--ac)}
+.map-search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:14px}
+.map-search-btn{width:44px;height:42px;border:none;border-radius:0 24px 24px 0;background:var(--ac);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.15);flex-shrink:0}
+.map-search-btn:active{opacity:.7}
+.map-results{position:absolute;top:48px;left:0;right:0;background:var(--card);border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.15);max-height:240px;overflow-y:auto;display:none}
 .map-results.show{display:block}
-.map-result-item{padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer}
+.map-result-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer}
 .map-result-item:active{background:var(--input-bg)}
+.map-result-item .result-name{font-size:14px;font-weight:600;color:var(--text)}
+.map-result-item .result-addr{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.4}
+.map-result-item.no-result{cursor:default;color:var(--sub);font-size:13px}
+.map-result-item.no-result:active{background:none}
 .map-legend{position:absolute;bottom:12px;left:12px;z-index:1000;background:var(--card);border-radius:8px;padding:6px 10px;font-size:11px;box-shadow:var(--shadow);display:flex;gap:10px}
 .map-legend span{display:flex;align-items:center;gap:4px}
 .map-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
@@ -75,7 +86,7 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .sheet h3{font-size:16px;margin-bottom:12px}
 .sheet .fg{margin-bottom:12px}
 .sheet label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
-.sheet input,.sheet textarea,.sheet select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--input-bg);font-family:inherit;color:var(--text)}
+.sheet input,.sheet textarea,.sheet select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;background:var(--input-bg);font-family:inherit;color:var(--text)}
 .sheet input:focus,.sheet textarea:focus,.sheet select:focus{outline:none;border-color:var(--ac)}
 .sheet textarea{resize:vertical;min-height:60px}
 .btn{display:block;width:100%;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;font-family:inherit;text-align:center}
@@ -98,7 +109,7 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .toggle.on::after{left:23px}
 .set-btn{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);font-size:13px;cursor:pointer;margin-top:6px;font-family:inherit;color:var(--text)}
 .set-btn:active{background:var(--input-bg)}
-.set-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--input-bg);font-family:inherit;margin-bottom:6px;color:var(--text)}
+.set-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:16px;background:var(--input-bg);font-family:inherit;margin-bottom:6px;color:var(--text)}
 .set-hint{font-size:10px;color:var(--sub);line-height:1.5;margin-top:6px}
 .set-btn-row{display:flex;gap:6px;margin-top:6px}
 .set-btn-row .set-btn{flex:1;margin-top:0}
@@ -119,6 +130,7 @@ body.dark .hd .badge.connected{background:#1e4620;color:#a3d9a5}
 .visit-item:last-child{border:none}
 .visit-item .date{font-weight:600;color:var(--ac)}
 .visit-item .memo{color:var(--sub);margin-top:2px}
+.visit-item .btn-edit{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ac);border:none;background:none;cursor:pointer;font-weight:600;padding:4px 0;margin-top:4px}
 .no-data{text-align:center;padding:40px 20px;color:var(--sub);font-size:13px}
 
 /* Leaflet custom marker */
@@ -133,7 +145,7 @@ body.dark .leaflet-control-attribution{background:rgba(42,42,42,.8);color:var(--
 body.dark .leaflet-control-attribution a{color:var(--sub)}
 
 /* ============================================
-   Loop 3: 写真機能 CSS
+   写真機能 CSS
    ============================================ */
 
 /* --- 写真追加ボタン --- */
@@ -153,23 +165,41 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
 .photo-delete-btn{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:20px;text-align:center;border:none;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
 .photo-delete-btn:active{background:rgba(255,50,50,.8)}
 
-/* --- カレンダーログ内: 横スクロール写真表示 --- */
-.photo-scroll{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+/* --- カレンダーログ内: 横スクロール写真表示（修正3: scroll-snap改善） --- */
+.photo-scroll{display:flex;gap:8px;overflow-x:auto;padding:8px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory}
 .photo-scroll::-webkit-scrollbar{display:none}
-.photo-scroll img{width:120px;height:90px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:pointer;transition:transform .15s ease}
+.photo-scroll img{width:120px;height:90px;object-fit:cover;border-radius:8px;flex-shrink:0;cursor:pointer;transition:transform .15s ease;scroll-snap-align:start}
 .photo-scroll img:active{transform:scale(.95)}
 
 /* --- マーカーシート: 代表写真サムネイル --- */
 .photo-thumbnail-wrap{position:relative;display:inline-block;margin:8px 0}
-.photo-thumbnail{width:100%;max-width:200px;height:120px;object-fit:cover;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.photo-thumbnail{width:100%;max-width:200px;height:120px;object-fit:cover;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.12);cursor:pointer}
 .photo-badge{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px}
 
-/* --- ライトボックス --- */
+/* --- ライトボックス（修正3: ナビ・ドット付き） --- */
 .photo-lightbox{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0);transition:background .2s ease;-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px)}
 .photo-lightbox.active{background:rgba(0,0,0,.85);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.photo-lightbox-content{position:relative;max-width:90vw;max-height:85vh}
-.photo-lightbox-content img{max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px}
-.photo-lightbox-close{position:absolute;top:-40px;right:0;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:22px;line-height:34px;text-align:center;border:none;cursor:pointer}
+.photo-lightbox-content{position:relative;max-width:90vw;max-height:85vh;display:flex;flex-direction:column;align-items:center}
+.photo-lightbox-content img{max-width:90vw;max-height:75vh;object-fit:contain;border-radius:8px;user-select:none;-webkit-user-drag:none}
+.photo-lightbox-close{position:absolute;top:-40px;right:0;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:22px;line-height:34px;text-align:center;border:none;cursor:pointer;z-index:10}
+.photo-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:18px;line-height:38px;text-align:center;border:none;cursor:pointer;z-index:10}
+.photo-lightbox-nav:active{background:rgba(255,255,255,.4)}
+.photo-lightbox-nav.prev{left:-50px}
+.photo-lightbox-nav.next{right:-50px}
+@media(max-width:500px){
+  .photo-lightbox-nav.prev{left:8px}
+  .photo-lightbox-nav.next{right:8px}
+}
+.photo-lightbox-dots{display:flex;gap:6px;margin-top:12px;justify-content:center}
+.photo-lightbox-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);transition:background .2s}
+.photo-lightbox-dots .dot.active{background:#fff}
+
+/* --- 修正4: カレンダー年月ピッカー --- */
+.cal-picker-overlay{display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);background:var(--card);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:12px 16px;z-index:200;min-width:200px}
+.cal-picker-overlay.show{display:block}
+.cal-picker-row{display:flex;gap:8px;align-items:center;justify-content:center}
+.cal-picker-row select{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;background:var(--input-bg);color:var(--text);font-family:inherit;appearance:auto;-webkit-appearance:auto}
+.cal-title-wrap{position:relative;display:inline-block}
 </style>
 </head>
 <body>
@@ -182,7 +212,15 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
 <div class="pn on" id="p-calendar">
   <div class="cal-header">
     <button onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-    <h2 id="cal-title"></h2>
+    <div class="cal-title-wrap">
+      <h2 id="cal-title" onclick="toggleCalPicker()"></h2>
+      <div class="cal-picker-overlay" id="cal-picker">
+        <div class="cal-picker-row">
+          <select id="cal-pick-year" onchange="applyCalPicker()"></select>
+          <select id="cal-pick-month" onchange="applyCalPicker()"></select>
+        </div>
+      </div>
+    </div>
     <button onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
   </div>
   <div class="cal-grid" id="cal-grid"></div>
@@ -192,8 +230,11 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
 <div class="pn" id="p-map">
   <div class="map-wrap">
     <div class="map-search">
-      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input type="text" id="map-input" placeholder="場所を検索..." autocomplete="off">
+      <div class="map-search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="map-input" placeholder="場所を検索..." autocomplete="off">
+      </div>
+      <button class="map-search-btn" id="map-search-btn" onclick="searchPlace()"><i class="fa-solid fa-magnifying-glass"></i></button>
       <div class="map-results" id="map-results"></div>
     </div>
     <div id="leaflet-map"></div>
@@ -561,6 +602,47 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     renderCalendar();
   };
 
+  // 修正4: カレンダー年月ピッカー
+  window.toggleCalPicker = function(){
+    var picker = document.getElementById('cal-picker');
+    var isOpen = picker.classList.contains('show');
+    if(isOpen){
+      picker.classList.remove('show');
+      return;
+    }
+    // populate selects
+    var yearSel = document.getElementById('cal-pick-year');
+    var monthSel = document.getElementById('cal-pick-month');
+    var yHtml = '';
+    for(var y=2024; y<=2027; y++){
+      yHtml += '<option value="'+y+'"'+(y===calYear?' selected':'')+'>'+y+'\u5e74</option>';
+    }
+    yearSel.innerHTML = yHtml;
+    var mHtml = '';
+    for(var m=0; m<12; m++){
+      mHtml += '<option value="'+m+'"'+(m===calMonth?' selected':'')+'>'+((m+1))+'\u6708</option>';
+    }
+    monthSel.innerHTML = mHtml;
+    picker.classList.add('show');
+  };
+
+  window.applyCalPicker = function(){
+    var yearSel = document.getElementById('cal-pick-year');
+    var monthSel = document.getElementById('cal-pick-month');
+    calYear = parseInt(yearSel.value, 10);
+    calMonth = parseInt(monthSel.value, 10);
+    renderCalendar();
+    document.getElementById('cal-picker').classList.remove('show');
+  };
+
+  // Close picker when clicking outside
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.cal-title-wrap')){
+      var picker = document.getElementById('cal-picker');
+      if(picker) picker.classList.remove('show');
+    }
+  });
+
   function renderCalendar(){
     document.getElementById("cal-title").textContent = calYear + "\u5e74" + (calMonth+1) + "\u6708";
     var grid = document.getElementById("cal-grid");
@@ -599,6 +681,7 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     document.getElementById("day-log").innerHTML = "";
   }
 
+  // 修正1: showDayLog with edit button and photo scroll
   function showDayLog(day){
     var cells = document.querySelectorAll(".cal-day");
     for(var i=0;i<cells.length;i++) cells[i].classList.remove("selected");
@@ -625,9 +708,12 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
         var pname = place ? place.name : "\u4e0d\u660e\u306a\u5834\u6240";
         h += '<div class="log-card"><h4><i class="fa-solid fa-location-dot"></i> '+pname+'</h4>';
         if(v.memo) h += '<p>'+v.memo+'</p>';
-        // Loop 3: 写真横スクロール表示
+        // 写真横スクロール表示
         h += renderPhotoScrollHTML(v.photos, v.id);
-        h += '<button class="btn-map" onclick="goToMap(\''+v.placeId+'\')"><i class="fa-solid fa-map"></i> \u5730\u56f3\u3067\u898b\u308b</button></div>';
+        h += '<button class="btn-map" onclick="goToMap(\''+v.placeId+'\')"><i class="fa-solid fa-map"></i> \u5730\u56f3\u3067\u898b\u308b</button>';
+        // 修正1: 編集ボタン追加
+        h += '<button class="btn-edit" onclick="openEditVisitSheet(\''+v.id+'\')"><i class="fa-solid fa-pen"></i> \u7de8\u96c6</button>';
+        h += '</div>';
       }
       logEl.innerHTML = h;
     }
@@ -640,6 +726,85 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
       if(data.places[i].id===id) return data.places[i];
     }
     return null;
+  }
+
+  function findVisit(id){
+    for(var i=0;i<data.visits.length;i++){
+      if(data.visits[i].id===id) return data.visits[i];
+    }
+    return null;
+  }
+
+  // 修正1&2: 編集フォーム表示
+  window.openEditVisitSheet = function(visitId){
+    var visit = findVisit(visitId);
+    if(!visit) return;
+    var place = findPlace(visit.placeId);
+    var pname = place ? place.name : '';
+
+    var h = '<h3><i class="fa-solid fa-pen-to-square"></i> \u8a18\u9332\u3092\u7de8\u96c6</h3>';
+    h += '<div class="fg"><label>\u5834\u6240\u540d</label><input type="text" id="edit-name" value="'+escapeAttr(pname)+'"></div>';
+    h += '<div class="fg"><label>\u65e5\u4ed8</label><input type="date" id="edit-date" value="'+visit.date+'"></div>';
+    h += '<div class="fg"><label>\u30e1\u30e2</label><textarea id="edit-memo">'+escapeHtml(visit.memo || '')+'</textarea></div>';
+    // 写真セクション
+    h += '<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\ud83d\udcf7 \u5199\u771f\u3092\u8ffd\u52a0</button>';
+    h += '<input type="file" id="photo-file-input" accept="image/*" multiple style="display:none">';
+    h += '<div id="photo-preview-container" class="photo-preview"></div></div>';
+    h += '<button class="btn btn-primary" onclick="saveEditVisit(\''+visitId+'\')"><i class="fa-solid fa-check"></i> \u4fdd\u5b58\u3059\u308b</button>';
+    h += '<button class="btn btn-danger" onclick="deleteVisit(\''+visitId+'\')"><i class="fa-solid fa-trash"></i> \u524a\u9664\u3059\u308b</button>';
+    h += '<button class="btn btn-secondary" onclick="closeS()">\u30ad\u30e3\u30f3\u30bb\u30eb</button>';
+    openS(h);
+
+    // 既存写真をプレビューにロード
+    photoCurrentPhotos = visit.photos ? visit.photos.slice() : [];
+    photoRenderPreview();
+    initPhotoInput();
+  };
+
+  window.saveEditVisit = function(visitId){
+    var visit = findVisit(visitId);
+    if(!visit) return;
+    var place = findPlace(visit.placeId);
+    var newName = document.getElementById('edit-name').value.trim();
+    var newDate = document.getElementById('edit-date').value;
+    var newMemo = document.getElementById('edit-memo').value.trim();
+    var newPhotos = photoGetPhotos();
+
+    // 場所名更新
+    if(place && newName && newName !== place.name){
+      place.name = newName;
+    }
+    // 訪問データ更新
+    visit.date = newDate;
+    visit.memo = newMemo;
+    visit.photos = newPhotos;
+
+    saveData();
+    renderCalendar();
+    if(mapInitialized) renderPins();
+    closeS();
+    toast('\u8a18\u9332\u3092\u66f4\u65b0\u3057\u307e\u3057\u305f\uff01');
+  };
+
+  window.deleteVisit = function(visitId){
+    for(var i=0;i<data.visits.length;i++){
+      if(data.visits[i].id === visitId){
+        data.visits.splice(i, 1);
+        break;
+      }
+    }
+    saveData();
+    renderCalendar();
+    if(mapInitialized) renderPins();
+    closeS();
+    toast('\u8a18\u9332\u3092\u524a\u9664\u3057\u307e\u3057\u305f');
+  };
+
+  function escapeHtml(str){
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escapeAttr(str){
+    return str.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   window.goToMap = function(placeId){
@@ -726,6 +891,7 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     }
   }
 
+  // 修正2: showPinSheet with edit button and photo thumbnails
   function showPinSheet(place){
     var color = place.status==="visited" ? "var(--red)" : "var(--blue)";
     var stxt = place.status==="visited" ? "\u884c\u3063\u305f\u5834\u6240" : "\u884c\u304d\u305f\u3044\u5834\u6240";
@@ -735,26 +901,32 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
       h += '<a href="'+place.url+'" target="_blank" rel="noopener" style="font-size:12px;color:var(--blue);display:block;margin:8px 0"><i class="fa-solid fa-link"></i> Web\u30b5\u30a4\u30c8\u3092\u958b\u304f</a>';
     }
 
-    // Loop 3: 代表写真サムネイル表示
+    // 代表写真サムネイル表示
     var placeVisits = [];
     for(var i=0;i<data.visits.length;i++){
       if(data.visits[i].placeId===place.id) placeVisits.push(data.visits[i]);
     }
     var representativePhotos = null;
+    var representativeVisitId = null;
     for(var i=placeVisits.length-1;i>=0;i--){
       if(placeVisits[i].photos && placeVisits[i].photos.length > 0){
         representativePhotos = placeVisits[i].photos;
+        representativeVisitId = placeVisits[i].id;
         break;
       }
     }
     if(representativePhotos){
-      h += renderThumbnailHTML(representativePhotos);
+      h += renderThumbnailHTML(representativePhotos, representativeVisitId);
     }
 
     if(placeVisits.length>0){
       h += '<div class="visit-list">';
       for(var i=0;i<placeVisits.length;i++){
-        h += '<div class="visit-item"><span class="date">'+placeVisits[i].date+'</span><div class="memo">'+placeVisits[i].memo+'</div></div>';
+        var vi = placeVisits[i];
+        h += '<div class="visit-item"><span class="date">'+vi.date+'</span><div class="memo">'+(vi.memo||'')+'</div>';
+        // 修正2: 各訪問に編集ボタン
+        h += '<button class="btn-edit" onclick="openEditVisitSheet(\''+vi.id+'\')"><i class="fa-solid fa-pen"></i> \u7de8\u96c6</button>';
+        h += '</div>';
       }
       h += '</div>';
     }
@@ -769,7 +941,6 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
   window.markVisited = function(placeId){
     var place = findPlace(placeId);
     if(!place) return;
-    // Loop 3: 写真追加UIを含むシートを表示
     var today = new Date().toISOString().split("T")[0];
     var h = '<h3><i class="fa-solid fa-check-circle"></i> \u884c\u3063\u305f\u8a18\u9332\u306b\u5909\u3048\u308b</h3>';
     h += '<div class="marker-preview"><div class="pin-dot" style="background:var(--red)"></div><div><h4>'+place.name+'</h4><div class="sub">\u2192 \u884c\u3063\u305f\u5834\u6240\u306b\u5909\u66f4\u3057\u307e\u3059</div></div></div>';
@@ -801,7 +972,7 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     toast(place.name + " \u3092\u884c\u3063\u305f\u8a18\u9332\u306b\u5909\u3048\u307e\u3057\u305f\uff01");
   };
 
-  // === Search ===
+  // === Search (修正5: Nominatim改善) ===
   var searchResults = [];
 
   document.getElementById("map-input").addEventListener("keydown", function(e){
@@ -814,32 +985,55 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     }
   });
 
-  function searchPlace(){
+  window.searchPlace = function(){
     var q = document.getElementById("map-input").value.trim();
     if(!q) return;
     var el = document.getElementById("map-results");
     el.innerHTML = '<div class="map-result-item"><i class="fa-solid fa-spinner fa-spin"></i> \u691c\u7d22\u4e2d...</div>';
     el.classList.add("show");
 
-    fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&countrycodes=jp&limit=5")
+    var url = "https://nominatim.openstreetmap.org/search?format=json"
+      + "&q=" + encodeURIComponent(q)
+      + "&countrycodes=jp"
+      + "&limit=5"
+      + "&accept-language=ja"
+      + "&addressdetails=1"
+      + "&bounded=1"
+      + "&viewbox=127.5,26.0,146.0,45.5";
+
+    fetch(url)
       .then(function(r){ return r.json(); })
       .then(function(res){
         searchResults = res;
         if(res.length===0){
-          el.innerHTML = '<div class="map-result-item">\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f</div>';
+          el.innerHTML = '<div class="map-result-item no-result">\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u5225\u306e\u30ad\u30fc\u30ef\u30fc\u30c9\u3067\u8a66\u3057\u3066\u304f\u3060\u3055\u3044</div>';
           return;
         }
         var h = "";
         for(var i=0;i<res.length;i++){
-          var label = res[i].display_name.split(",").slice(0,3).join(", ");
-          h += '<div class="map-result-item" onclick="addFromSearch('+i+')">'+label+'</div>';
+          var r = res[i];
+          var rName = r.display_name.split(",")[0];
+          var addrParts = [];
+          if(r.address){
+            if(r.address.state) addrParts.push(r.address.state);
+            if(r.address.city) addrParts.push(r.address.city);
+            if(r.address.town) addrParts.push(r.address.town);
+            if(r.address.village) addrParts.push(r.address.village);
+            if(r.address.suburb) addrParts.push(r.address.suburb);
+            if(r.address.road) addrParts.push(r.address.road);
+          }
+          var addrStr = addrParts.length > 0 ? addrParts.join(' ') : r.display_name.split(",").slice(1,4).join(", ");
+          h += '<div class="map-result-item" onclick="addFromSearch('+i+')">';
+          h += '<div class="result-name">'+escapeHtml(rName)+'</div>';
+          h += '<div class="result-addr">'+escapeHtml(addrStr)+'</div>';
+          h += '</div>';
         }
         el.innerHTML = h;
       })
       .catch(function(){
         el.innerHTML = '<div class="map-result-item">\u691c\u7d22\u30a8\u30e9\u30fc\uff08\u30cd\u30c3\u30c8\u30ef\u30fc\u30af\u78ba\u8a8d\uff09</div>';
       });
-  }
+  };
 
   window.addFromSearch = function(idx){
     var r = searchResults[idx];
@@ -874,7 +1068,7 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     h += '<div class="fg"><label>\u4e00\u8a00\u30e1\u30e2</label><textarea id="add-memo" placeholder="\u4f8b\uff1a\u30d1\u30f3\u30b1\u30fc\u30ad\u304c\u7f8e\u5473\u3057\u304b\u3063\u305f\uff01"></textarea></div>';
     h += '<div class="fg"><label>\u30b9\u30c6\u30fc\u30bf\u30b9</label><select id="add-status"><option value="visited">\u884c\u3063\u305f\uff08\u8d64\u30d4\u30f3\uff09</option><option value="wishlist">\u884c\u304d\u305f\u3044\uff08\u9752\u30d4\u30f3\uff09</option></select></div>';
     h += '<div class="fg"><label>URL\uff08\u4efb\u610f\uff09</label><input type="url" id="add-url" placeholder="https://..."></div>';
-    // Loop 3: 写真追加セクション
+    // 写真追加セクション
     h += '<div class="fg"><button type="button" id="photo-add-btn" class="photo-add-btn" onclick="photoTrigger()">\ud83d\udcf7 \u5199\u771f\u3092\u8ffd\u52a0</button>';
     h += '<input type="file" id="photo-file-input" accept="image/*" multiple style="display:none">';
     h += '<div id="photo-preview-container" class="photo-preview"></div></div>';
@@ -981,7 +1175,7 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
   };
 
   // ============================================================
-  // Loop 3: 写真機能（インライン統合版、var宣言のみ）
+  // 写真機能（インライン統合版、var宣言のみ）
   // ============================================================
   var photoCurrentPhotos = [];
   var PHOTO_MAX = 5;
@@ -1152,28 +1346,128 @@ body.dark .photo-add-btn:disabled{background:#2a2a2a;border-color:#444;color:#66
     return html;
   }
 
-  // マーカーシート用: 代表写真サムネイルHTML生成
-  function renderThumbnailHTML(photos){
+  // マーカーシート用: 代表写真サムネイルHTML生成（修正2: タップで拡大）
+  function renderThumbnailHTML(photos, visitId){
     if(!photos || photos.length === 0) return '';
     var badge = photos.length > 1 ? '<span class="photo-badge">+' + (photos.length - 1) + '</span>' : '';
-    return '<div class="photo-thumbnail-wrap"><img src="'+photos[0]+'" alt="\u4ee3\u8868\u5199\u771f" class="photo-thumbnail">'+badge+'</div>';
+    return '<div class="photo-thumbnail-wrap"><img src="'+photos[0]+'" alt="\u4ee3\u8868\u5199\u771f" class="photo-thumbnail" data-visit="'+(visitId||'')+'" data-index="0">'+badge+'</div>';
   }
 
-  // ライトボックス（イベント委譲）
-  document.addEventListener('click', function(e){
-    if(!e.target.classList.contains('photo-scroll-img')) return;
-    var src = e.target.src;
+  // ============================================================
+  // 修正3: ライトボックス（ナビ付き・スワイプ対応）
+  // ============================================================
+  var lightboxPhotos = [];
+  var lightboxIndex = 0;
+  var lightboxOverlay = null;
+
+  function openLightbox(photos, startIndex){
+    lightboxPhotos = photos;
+    lightboxIndex = startIndex || 0;
+
     var overlay = document.createElement('div');
     overlay.className = 'photo-lightbox';
-    overlay.innerHTML = '<div class="photo-lightbox-content"><img src="'+src+'" alt="\u62e1\u5927\u5199\u771f"><button class="photo-lightbox-close" aria-label="\u9589\u3058\u308b">\u00d7</button></div>';
+    overlay.innerHTML = buildLightboxHTML();
+    lightboxOverlay = overlay;
+
+    // Close on background click
     overlay.addEventListener('click', function(ev){
       if(ev.target === overlay || ev.target.classList.contains('photo-lightbox-close')){
-        overlay.classList.remove('active');
-        setTimeout(function(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200);
+        closeLightbox();
       }
     });
+
     document.body.appendChild(overlay);
     requestAnimationFrame(function(){ overlay.classList.add('active'); });
+
+    // Swipe support
+    var touchStartX = 0;
+    var touchStartY = 0;
+    overlay.addEventListener('touchstart', function(ev){
+      if(ev.touches.length === 1){
+        touchStartX = ev.touches[0].clientX;
+        touchStartY = ev.touches[0].clientY;
+      }
+    }, {passive: true});
+    overlay.addEventListener('touchend', function(ev){
+      if(ev.changedTouches.length === 1){
+        var dx = ev.changedTouches[0].clientX - touchStartX;
+        var dy = ev.changedTouches[0].clientY - touchStartY;
+        if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)){
+          if(dx < 0) lightboxNext();
+          else lightboxPrev();
+        }
+      }
+    }, {passive: true});
+  }
+
+  function buildLightboxHTML(){
+    var hasMultiple = lightboxPhotos.length > 1;
+    var html = '<div class="photo-lightbox-content">';
+    html += '<button class="photo-lightbox-close" aria-label="\u9589\u3058\u308b">\u00d7</button>';
+    if(hasMultiple){
+      html += '<button class="photo-lightbox-nav prev" onclick="lightboxPrev()"><i class="fa-solid fa-chevron-left"></i></button>';
+      html += '<button class="photo-lightbox-nav next" onclick="lightboxNext()"><i class="fa-solid fa-chevron-right"></i></button>';
+    }
+    html += '<img src="'+lightboxPhotos[lightboxIndex]+'" alt="\u62e1\u5927\u5199\u771f">';
+    if(hasMultiple){
+      html += '<div class="photo-lightbox-dots">';
+      for(var i=0; i<lightboxPhotos.length; i++){
+        html += '<span class="dot'+(i===lightboxIndex?' active':'')+'"></span>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function updateLightboxContent(){
+    if(!lightboxOverlay) return;
+    lightboxOverlay.innerHTML = buildLightboxHTML();
+  }
+
+  window.lightboxPrev = function(){
+    if(lightboxPhotos.length <= 1) return;
+    lightboxIndex = (lightboxIndex - 1 + lightboxPhotos.length) % lightboxPhotos.length;
+    updateLightboxContent();
+  };
+
+  window.lightboxNext = function(){
+    if(lightboxPhotos.length <= 1) return;
+    lightboxIndex = (lightboxIndex + 1) % lightboxPhotos.length;
+    updateLightboxContent();
+  };
+
+  function closeLightbox(){
+    if(!lightboxOverlay) return;
+    lightboxOverlay.classList.remove('active');
+    var ref = lightboxOverlay;
+    setTimeout(function(){ if(ref.parentNode) ref.parentNode.removeChild(ref); }, 200);
+    lightboxOverlay = null;
+  }
+
+  // ライトボックス（イベント委譲）: photo-scroll-img & photo-thumbnail
+  document.addEventListener('click', function(e){
+    var target = e.target;
+    // photo-scroll-img: カレンダーログの写真
+    if(target.classList.contains('photo-scroll-img')){
+      var visitId = target.getAttribute('data-visit');
+      var idx = parseInt(target.getAttribute('data-index'), 10) || 0;
+      var visit = findVisit(visitId);
+      if(visit && visit.photos && visit.photos.length > 0){
+        openLightbox(visit.photos, idx);
+      }
+      return;
+    }
+    // photo-thumbnail: マーカーシートのサムネイル
+    if(target.classList.contains('photo-thumbnail')){
+      var visitId2 = target.getAttribute('data-visit');
+      var idx2 = parseInt(target.getAttribute('data-index'), 10) || 0;
+      var visit2 = findVisit(visitId2);
+      if(visit2 && visit2.photos && visit2.photos.length > 0){
+        openLightbox(visit2.photos, idx2);
+      }
+      return;
+    }
   });
 
   // 長押し削除（モバイル）
